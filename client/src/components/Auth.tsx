@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { apiService } from '../services/api';
 import { useGameStore } from '../store/gameStore';
-import { AVATAR_TYPES } from '@mini-gather/shared';
+import { AVATAR_TYPES, AvatarType } from '@mini-gather/shared';
 
 export function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_TYPES[0]);
+  const [selectedAvatar, setSelectedAvatar] = useState<AvatarType>(AVATAR_TYPES[0]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const setUser = useGameStore((state) => state.setUser);

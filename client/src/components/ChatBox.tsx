@@ -38,7 +38,7 @@ export function ChatBox() {
     socket.emit(SOCKET_EVENTS.CHAT_MESSAGE, {
       content: input,
       channel,
-      roomId: channel === ChatChannel.ROOM ? currentRoomId : undefined,
+      ...(channel === ChatChannel.ROOM && currentRoomId && { roomId: currentRoomId }),
     });
 
     setInput('');

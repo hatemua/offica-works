@@ -58,7 +58,7 @@ export class MainScene extends Phaser.Scene {
     // }
 
     // Create ground tile
-    const groundGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+    const groundGraphics = this.make.graphics({ x: 0, y: 0 });
     groundGraphics.fillStyle(0x34495e, 1);
     groundGraphics.fillRect(0, 0, 32, 32);
     groundGraphics.lineStyle(1, 0x2c3e50, 1);
@@ -67,7 +67,7 @@ export class MainScene extends Phaser.Scene {
     groundGraphics.destroy();
 
     // Create wall tile
-    const wallGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+    const wallGraphics = this.make.graphics({ x: 0, y: 0 });
     wallGraphics.fillStyle(0x7f8c8d, 1);
     wallGraphics.fillRect(0, 0, 32, 32);
     wallGraphics.generateTexture('wall', 32, 32);
@@ -81,7 +81,7 @@ export class MainScene extends Phaser.Scene {
     const cols = 3;
     const rows = 4;
 
-    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    const graphics = this.make.graphics({ x: 0, y: 0 });
 
     // Avatar color schemes
     const colorSchemes = {
@@ -429,7 +429,7 @@ export class MainScene extends Phaser.Scene {
     });
 
     // Scroll wheel zoom
-    this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any[], deltaX: number, deltaY: number) => {
+    this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: any[], _deltaX: number, deltaY: number) => {
       const zoomAmount = deltaY > 0 ? -0.1 : 0.1;
       const newZoom = Phaser.Math.Clamp(
         this.cameras.main.zoom + zoomAmount,

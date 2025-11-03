@@ -3,7 +3,6 @@ import {
   LiveKitRoom,
   VideoConference,
   RoomAudioRenderer,
-  useRoomContext,
 } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { useGameStore } from '../store/gameStore';
