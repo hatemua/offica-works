@@ -50,6 +50,11 @@ export interface RoomState {
   playerIds: string[];
   isPrivate: boolean;
   password?: string;
+  doorIds?: string[]; // IDs of doors that connect to this room
+  requiresDoor?: boolean; // If true, must enter through a door
+  videoMode?: 'proximity' | 'all' | 'none'; // How video/audio works in this room
+  allowScreenShare?: boolean; // Enable screen sharing
+  backgroundColor?: number; // Visual background color
 }
 
 export interface Rectangle {

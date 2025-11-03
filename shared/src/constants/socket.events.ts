@@ -33,6 +33,12 @@ export const SOCKET_EVENTS = {
   CHAT_MESSAGE: 'chat:message',
   CHAT_HISTORY: 'chat:history',
 
+  // Doors
+  DOOR_INTERACT: 'door:interact',
+  DOOR_UPDATE: 'door:update',
+  DOOR_KNOCK: 'door:knock',
+  DOORS_LIST: 'doors:list',
+
   // Game State
   GAME_STATE: 'game:state',
   GAME_STATE_UPDATE: 'game:state:update',
