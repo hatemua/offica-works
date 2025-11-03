@@ -56,15 +56,30 @@ export class Furniture extends Phaser.GameObjects.Sprite {
    */
   private static getTextureKey(type: FurnitureData['type']): string {
     const textureMap: Record<FurnitureData['type'], string> = {
+      // Office
       desk: 'desk',
       table: 'conference-table',
       chair: 'chair',
       bookshelf: 'bookshelf',
-      plant: 'plant',
-      computer: 'monitor',
-      cabinet: 'cabinet',
-      sofa: 'sofa',
       'filing-cabinet': 'filing-cabinet',
+      cabinet: 'cabinet',
+      computer: 'monitor',
+      // Lounge
+      sofa: 'sofa',
+      beanbag: 'beanbag',
+      'coffee-table': 'coffee-table',
+      // Kitchen
+      fridge: 'fridge',
+      counter: 'counter',
+      'dining-table': 'dining-table',
+      // Meeting room
+      whiteboard: 'whiteboard',
+      tv: 'tv',
+      // Decorations
+      plant: 'plant',
+      // Outdoor
+      tree: 'tree',
+      bush: 'bush',
     };
 
     return textureMap[type] || 'desk';

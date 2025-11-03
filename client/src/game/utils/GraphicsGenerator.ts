@@ -14,54 +14,110 @@ export class GraphicsGenerator {
   }
 
   /**
-   * Create enhanced floor tiles with texture
+   * Create enhanced floor tiles with realistic textures
    */
   createFloorTiles(): void {
     const size = this.tileSize;
 
-    // Carpet Floor (Blue - for corridors)
-    const carpetGraphics = this.scene.make.graphics({ x: 0, y: 0 });
-    carpetGraphics.fillStyle(0x4A90E2, 1);
-    carpetGraphics.fillRect(0, 0, size, size);
-    // Add subtle pattern
-    carpetGraphics.fillStyle(0x3A7BC2, 0.3);
-    for (let i = 0; i < size; i += 4) {
-      carpetGraphics.fillRect(i, 0, 2, size);
-    }
-    carpetGraphics.lineStyle(1, 0x3A7BC2, 0.5);
-    carpetGraphics.strokeRect(0, 0, size, size);
-    carpetGraphics.generateTexture('floor-carpet', size, size);
-    carpetGraphics.destroy();
-
-    // Wood Floor (Brown - for offices)
+    // Realistic Wood Planks (horizontal grain)
     const woodGraphics = this.scene.make.graphics({ x: 0, y: 0 });
-    woodGraphics.fillStyle(0x8B4513, 1);
+    woodGraphics.fillStyle(0xC19A6B, 1); // Light wood color
     woodGraphics.fillRect(0, 0, size, size);
-    // Wood grain effect
-    carpetGraphics.fillStyle(0x654321, 0.2);
-    for (let i = 0; i < size; i += 8) {
-      woodGraphics.fillRect(0, i, size, 2);
+
+    // Wood planks (3 planks per tile)
+    const plankHeight = size / 3;
+    for (let i = 0; i < 3; i++) {
+      const y = i * plankHeight;
+      // Plank variation
+      const shade = [0xD4A574, 0xC19A6B, 0xB8936A][i];
+      woodGraphics.fillStyle(shade, 1);
+      woodGraphics.fillRect(0, y, size, plankHeight);
+
+      // Wood grain lines (horizontal)
+      woodGraphics.lineStyle(0.5, 0x8B6F47, 0.3);
+      for (let j = 0; j < 3; j++) {
+        woodGraphics.lineBetween(0, y + (j + 1) * (plankHeight / 4), size, y + (j + 1) * (plankHeight / 4));
+      }
+
+      // Plank border
+      woodGraphics.lineStyle(1, 0x8B6F47, 0.6);
+      woodGraphics.lineBetween(0, y + plankHeight, size, y + plankHeight);
     }
-    woodGraphics.lineStyle(1, 0x654321, 0.3);
-    woodGraphics.strokeRect(0, 0, size, size);
     woodGraphics.generateTexture('floor-wood', size, size);
     woodGraphics.destroy();
 
-    // Tile Floor (Gray - for meeting rooms)
+    // Carpet Floor (textured)
+    const carpetGraphics = this.scene.make.graphics({ x: 0, y: 0 });
+    carpetGraphics.fillStyle(0xB85C5C, 1); // Warm carpet color
+    carpetGraphics.fillRect(0, 0, size, size);
+    // Carpet texture (small dots pattern)
+    for (let x = 0; x < size; x += 4) {
+      for (let y = 0; y < size; y += 4) {
+        carpetGraphics.fillStyle(0xA84848, 0.3);
+        carpetGraphics.fillCircle(x + 2, y + 2, 1);
+      }
+    }
+    carpetGraphics.generateTexture('floor-carpet', size, size);
+    carpetGraphics.destroy();
+
+    // Tile Floor (kitchen/bathroom style with grout)
     const tileGraphics = this.scene.make.graphics({ x: 0, y: 0 });
-    // Checkered pattern
-    tileGraphics.fillStyle(0xCCCCCC, 1);
-    tileGraphics.fillRect(0, 0, size / 2, size / 2);
-    tileGraphics.fillRect(size / 2, size / 2, size / 2, size / 2);
-    tileGraphics.fillStyle(0xAAAAAA, 1);
-    tileGraphics.fillRect(size / 2, 0, size / 2, size / 2);
-    tileGraphics.fillRect(0, size / 2, size / 2, size / 2);
-    tileGraphics.lineStyle(1, 0x888888, 0.5);
-    tileGraphics.strokeRect(0, 0, size, size);
+    tileGraphics.fillStyle(0xE8E8E8, 1); // Light gray tile
+    tileGraphics.fillRect(0, 0, size, size);
+    // Grout lines
+    tileGraphics.lineStyle(2, 0xC0C0C0, 1);
+    tileGraphics.strokeRect(1, 1, size - 2, size - 2);
+    // Subtle shine
+    tileGraphics.fillStyle(0xFFFFFF, 0.2);
+    tileGraphics.fillRect(2, 2, size / 3, size / 3);
     tileGraphics.generateTexture('floor-tile', size, size);
     tileGraphics.destroy();
 
-    console.log('✅ Enhanced floor tiles created');
+    // Chevron/Zigzag Floor (for silent zone - like in reference)
+    const chevronGraphics = this.scene.make.graphics({ x: 0, y: 0 });
+    chevronGraphics.fillStyle(0xF5F5F5, 1); // White/light gray base
+    chevronGraphics.fillRect(0, 0, size, size);
+    // Chevron pattern
+    chevronGraphics.fillStyle(0xE0E0E0, 1);
+    chevronGraphics.beginPath();
+    chevronGraphics.moveTo(0, size / 2);
+    chevronGraphics.lineTo(size / 2, 0);
+    chevronGraphics.lineTo(size, size / 2);
+    chevronGraphics.lineTo(size / 2, size);
+    chevronGraphics.closePath();
+    chevronGraphics.fillPath();
+    chevronGraphics.generateTexture('floor-chevron', size, size);
+    chevronGraphics.destroy();
+
+    // Grass Floor (for outdoor areas)
+    const grassGraphics = this.scene.make.graphics({ x: 0, y: 0 });
+    grassGraphics.fillStyle(0x7CB342, 1); // Grass green
+    grassGraphics.fillRect(0, 0, size, size);
+    // Grass texture (random small strokes)
+    for (let i = 0; i < 20; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      grassGraphics.fillStyle(0x689F38, 0.4);
+      grassGraphics.fillRect(x, y, 2, 3);
+      grassGraphics.fillStyle(0x8BC34A, 0.3);
+      grassGraphics.fillRect(x + 1, y + 1, 1, 2);
+    }
+    grassGraphics.generateTexture('floor-grass', size, size);
+    grassGraphics.destroy();
+
+    // Water/Pond tile
+    const waterGraphics = this.scene.make.graphics({ x: 0, y: 0 });
+    waterGraphics.fillStyle(0x4FC3F7, 1); // Light blue water
+    waterGraphics.fillRect(0, 0, size, size);
+    // Water ripples
+    waterGraphics.fillStyle(0x81D4FA, 0.4);
+    waterGraphics.fillCircle(size / 3, size / 3, size / 4);
+    waterGraphics.fillStyle(0x29B6F6, 0.3);
+    waterGraphics.fillCircle(2 * size / 3, 2 * size / 3, size / 5);
+    waterGraphics.generateTexture('floor-water', size, size);
+    waterGraphics.destroy();
+
+    console.log('✅ Enhanced floor tiles created (wood, carpet, tile, chevron, grass, water)');
   }
 
   /**
@@ -89,6 +145,80 @@ export class GraphicsGenerator {
     graphics.destroy();
 
     console.log('✅ Enhanced wall tile created');
+  }
+
+  /**
+   * Create glass wall tile (semi-transparent for meeting rooms)
+   */
+  createGlassWall(): void {
+    const size = this.tileSize;
+    const graphics = this.scene.make.graphics({ x: 0, y: 0 });
+
+    // Glass pane (semi-transparent blue)
+    graphics.fillStyle(0x87CEEB, 0.3);
+    graphics.fillRect(0, 0, size, size);
+
+    // Window frame
+    graphics.lineStyle(3, 0x2C3E50, 1);
+    graphics.strokeRect(0, 0, size, size);
+
+    // Glass reflection/highlight
+    graphics.fillStyle(0xFFFFFF, 0.4);
+    graphics.fillRect(2, 2, size / 4, size / 3);
+
+    graphics.generateTexture('wall-glass', size, size);
+    graphics.destroy();
+
+    console.log('✅ Glass wall created');
+  }
+
+  /**
+   * Create outdoor tree
+   */
+  createTree(): void {
+    const graphics = this.scene.make.graphics({ x: 0, y: 0 });
+    const width = 48;
+    const height = 64;
+
+    // Tree trunk
+    graphics.fillStyle(0x5D4037, 1);
+    graphics.fillRect(width / 2 - 6, height - 24, 12, 24);
+
+    // Foliage (layered circles for depth)
+    graphics.fillStyle(0x43A047, 1);
+    graphics.fillCircle(width / 2, height - 32, 20);
+    graphics.fillStyle(0x66BB6A, 1);
+    graphics.fillCircle(width / 2 - 8, height - 28, 16);
+    graphics.fillCircle(width / 2 + 8, height - 28, 16);
+    graphics.fillStyle(0x81C784, 0.8);
+    graphics.fillCircle(width / 2, height - 40, 14);
+
+    graphics.generateTexture('tree', width, height);
+    graphics.destroy();
+
+    console.log('✅ Tree created');
+  }
+
+  /**
+   * Create bush/shrub
+   */
+  createBush(): void {
+    const graphics = this.scene.make.graphics({ x: 0, y: 0 });
+    const width = 32;
+    const height = 24;
+
+    // Bush (clustered circles)
+    graphics.fillStyle(0x66BB6A, 1);
+    graphics.fillCircle(width / 2, height / 2, 10);
+    graphics.fillCircle(width / 2 - 8, height / 2 + 4, 8);
+    graphics.fillCircle(width / 2 + 8, height / 2 + 4, 8);
+    graphics.fillStyle(0x81C784, 0.6);
+    graphics.fillCircle(width / 2, height / 2 - 4, 6);
+
+    graphics.generateTexture('bush', width, height);
+    graphics.destroy();
+
+    console.log('✅ Bush created');
   }
 
   /**
@@ -324,29 +454,46 @@ export class GraphicsGenerator {
 
     // Walls
     this.createWallTile();
+    this.createGlassWall();
 
-    // Furniture
+    // Outdoor elements
+    this.createTree();
+    this.createBush();
+
+    // Basic furniture
     this.createDesk('desk');
     this.createChair('chair');
     this.createTable('conference-table');
     this.createTable('meeting-table');
 
-    // Decorations
-    this.createPlant('plant');
+    // Office furniture
+    this.createBookshelf('bookshelf');
     this.createFilingCabinet('filing-cabinet');
     this.createFilingCabinet('cabinet'); // Legacy name
+    this.createMonitor('monitor');
+
+    // Lounge furniture
+    this.createSofa('sofa');
+    this.createBeanBag('beanbag');
+    this.createCoffeeTable('coffee-table');
+
+    // Kitchen furniture
+    this.createFridge('fridge');
+    this.createCounter('counter');
+    this.createDiningTable('dining-table');
+
+    // Meeting room furniture
+    this.createWhiteboard('whiteboard');
+    this.createTV('tv');
+
+    // Decorations
+    this.createPlant('plant');
     this.createWindow('window');
     this.createPainting('painting-red', 0xE74C3C);
     this.createPainting('painting-blue', 0x3498DB);
     this.createPainting('painting-green', 0x27AE60);
 
-    // New furniture types
-    this.createBookshelf('bookshelf');
-    this.createSofa('sofa');
-    this.createWhiteboard('whiteboard');
-    this.createMonitor('monitor');
-
-    console.log('✅ All enhanced graphics generated');
+    console.log('✅ All enhanced graphics generated (floors, walls, furniture, outdoor)');
   }
 
   /**
@@ -493,5 +640,194 @@ export class GraphicsGenerator {
     graphics.destroy();
 
     console.log(`✅ Monitor created: ${key}`);
+  }
+
+  /**
+   * Create furniture: Bean Bag (like in reference image)
+   */
+  createBeanBag(key: string = 'beanbag'): void {
+    const width = 48;
+    const height = 48;
+    const graphics = this.scene.make.graphics({ x: 0, y: 0 });
+
+    // Bean bag base (round, soft looking)
+    graphics.fillStyle(0x66BB6A, 1); // Green color like reference
+    graphics.fillEllipse(width / 2, height / 2 + 4, width / 2 - 4, height / 2 - 4);
+
+    // Shading for 3D effect
+    graphics.fillStyle(0x43A047, 0.5);
+    graphics.fillEllipse(width / 2, height / 2 - 4, width / 2 - 8, height / 2 - 8);
+
+    // Highlight
+    graphics.fillStyle(0x81C784, 0.6);
+    graphics.fillEllipse(width / 2 - 6, height / 2 - 8, 10, 8);
+
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
+
+    console.log(`✅ Bean bag created: ${key}`);
+  }
+
+  /**
+   * Create kitchen appliance: Refrigerator
+   */
+  createFridge(key: string = 'fridge'): void {
+    const width = 64;
+    const height = 96;
+    const graphics = this.scene.make.graphics({ x: 0, y: 0 });
+
+    // Fridge body
+    graphics.fillStyle(0xECEFF1, 1); // Light gray/silver
+    graphics.fillRect(0, 0, width, height);
+
+    // Fridge doors (split)
+    graphics.lineStyle(2, 0x90A4AE, 1);
+    graphics.lineBetween(width / 2, 0, width / 2, height);
+    graphics.lineBetween(0, height * 0.6, width, height * 0.6);
+
+    // Door handles
+    graphics.fillStyle(0x607D8B, 1);
+    graphics.fillRect(width / 2 - 12, height * 0.3, 4, 16);
+    graphics.fillRect(width / 2 + 8, height * 0.3, 4, 16);
+    graphics.fillRect(width / 2 - 12, height * 0.75, 4, 12);
+    graphics.fillRect(width / 2 + 8, height * 0.75, 4, 12);
+
+    // Border/shadow
+    graphics.lineStyle(3, 0xCFD8DC, 1);
+    graphics.strokeRect(0, 0, width, height);
+
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
+
+    console.log(`✅ Fridge created: ${key}`);
+  }
+
+  /**
+   * Create kitchen: Counter
+   */
+  createCounter(key: string = 'counter'): void {
+    const width = 96;
+    const height = 64;
+    const graphics = this.scene.make.graphics({ x: 0, y: 0 });
+
+    // Counter top (marble/granite effect)
+    graphics.fillStyle(0x78909C, 1);
+    graphics.fillRect(0, 0, width, height / 3);
+
+    // Counter body (wood cabinets)
+    graphics.fillStyle(0x5D4037, 1);
+    graphics.fillRect(0, height / 3, width, 2 * height / 3);
+
+    // Cabinet doors
+    graphics.lineStyle(2, 0x4E342E, 1);
+    graphics.strokeRect(4, height / 3 + 4, width / 2 - 6, 2 * height / 3 - 8);
+    graphics.strokeRect(width / 2 + 2, height / 3 + 4, width / 2 - 6, 2 * height / 3 - 8);
+
+    // Cabinet handles
+    graphics.fillStyle(0xC0C0C0, 1);
+    graphics.fillCircle(width / 4, height / 2, 3);
+    graphics.fillCircle(3 * width / 4, height / 2, 3);
+
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
+
+    console.log(`✅ Counter created: ${key}`);
+  }
+
+  /**
+   * Create dining table (larger than desk)
+   */
+  createDiningTable(key: string = 'dining-table'): void {
+    const width = 128;
+    const height = 96;
+    const graphics = this.scene.make.graphics({ x: 0, y: 0 });
+
+    // Table top (wood)
+    graphics.fillStyle(0x8D6E63, 1);
+    graphics.fillRect(0, 0, width, height);
+
+    // Wood grain
+    graphics.lineStyle(1, 0x6D4C41, 0.3);
+    for (let i = 0; i < height; i += 8) {
+      graphics.lineBetween(0, i, width, i);
+    }
+
+    // Table edge
+    graphics.lineStyle(3, 0x5D4037, 1);
+    graphics.strokeRect(0, 0, width, height);
+
+    // Table legs (visible corners)
+    graphics.fillStyle(0x4E342E, 1);
+    graphics.fillRect(4, height - 12, 8, 10);
+    graphics.fillRect(width - 12, height - 12, 8, 10);
+    graphics.fillRect(4, 2, 8, 10);
+    graphics.fillRect(width - 12, 2, 8, 10);
+
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
+
+    console.log(`✅ Dining table created: ${key}`);
+  }
+
+  /**
+   * Create TV/Screen for meeting rooms
+   */
+  createTV(key: string = 'tv'): void {
+    const width = 96;
+    const height = 64;
+    const graphics = this.scene.make.graphics({ x: 0, y: 0 });
+
+    // TV frame
+    graphics.fillStyle(0x212121, 1);
+    graphics.fillRect(0, 0, width, height);
+
+    // Screen (dark blue when off)
+    graphics.fillStyle(0x1A237E, 1);
+    graphics.fillRect(4, 4, width - 8, height - 8);
+
+    // Screen reflection
+    graphics.fillStyle(0x3F51B5, 0.3);
+    graphics.fillRect(8, 8, width / 3, height / 4);
+
+    // Stand
+    graphics.fillStyle(0x424242, 1);
+    graphics.fillRect(width / 2 - 12, height - 4, 24, 4);
+    graphics.fillRect(width / 2 - 6, height - 12, 12, 12);
+
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
+
+    console.log(`✅ TV created: ${key}`);
+  }
+
+  /**
+   * Create coffee table (for lounge)
+   */
+  createCoffeeTable(key: string = 'coffee-table'): void {
+    const width = 96;
+    const height = 64;
+    const graphics = this.scene.make.graphics({ x: 0, y: 0 });
+
+    // Table top (glass effect)
+    graphics.fillStyle(0xB0BEC5, 0.7);
+    graphics.fillRect(0, 0, width, height);
+
+    // Glass reflection
+    graphics.fillStyle(0xFFFFFF, 0.4);
+    graphics.fillRect(4, 4, width / 3, height / 4);
+
+    // Metal frame
+    graphics.lineStyle(4, 0x78909C, 1);
+    graphics.strokeRect(0, 0, width, height);
+
+    // Legs (chrome/metal)
+    graphics.fillStyle(0x90A4AE, 1);
+    graphics.fillRect(6, height - 8, 6, 8);
+    graphics.fillRect(width - 12, height - 8, 6, 8);
+
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
+
+    console.log(`✅ Coffee table created: ${key}`);
   }
 }
