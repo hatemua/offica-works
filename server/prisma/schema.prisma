@@ -1,0 +1,53 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  username  String   @unique
+  password  String
+  avatar    String   @default("avatar1")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Room {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   // social, meeting, presentation, private
+  boundsX   Int
+  boundsY   Int
+  width     Int
+  height    Int
+  capacity  Int      @default(20)
+  isPrivate Boolean  @default(false)
+  password  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("rooms")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  userId    String
+  username  String
+  content   String
+  channel   String   // global, room, proximity
+  roomId    String?
+  createdAt DateTime @default(now())
+
+  @@index([roomId])
+  @@index([createdAt])
+  @@map("chat_messages")
+}
