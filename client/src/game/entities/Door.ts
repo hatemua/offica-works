@@ -3,8 +3,8 @@ import { Door as DoorData, DoorState, DOOR_STATES, GAME_CONFIG } from '@mini-gat
 
 export class Door extends Phaser.GameObjects.Container {
   private doorData: DoorData;
-  private doorSprite: Phaser.GameObjects.Rectangle;
-  private doorFrame: Phaser.GameObjects.Rectangle;
+  private doorSprite!: Phaser.GameObjects.Rectangle;
+  private doorFrame!: Phaser.GameObjects.Rectangle;
   private lockIcon?: Phaser.GameObjects.Text;
   private interactionHint?: Phaser.GameObjects.Text;
   private isPlayerNear: boolean = false;
