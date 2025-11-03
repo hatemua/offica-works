@@ -1,4 +1,5 @@
 import { Player, PlayerMovement, ProximityData } from './game.types';
+import { Door, DoorInteraction, DoorUpdate } from './door.types';
 import { UserProfile } from './user.types';
 
 export interface ServerToClientEvents {
@@ -27,6 +28,11 @@ export interface ServerToClientEvents {
   'chat:message': (message: ChatMessage) => void;
   'chat:history': (messages: ChatMessage[]) => void;
 
+  // Doors
+  'door:update': (update: DoorUpdate) => void;
+  'door:knock': (data: { doorId: string; knockedBy: string; roomId: string }) => void;
+  'doors:list': (doors: Door[]) => void;
+
   // Game State
   'game:state': (state: any) => void;
   'game:state:update': (update: any) => void;
@@ -42,6 +48,10 @@ export interface ClientToServerEvents {
   // Rooms
   'room:join': (data: { roomId: string; password?: string }) => void;
   'room:leave': (roomId: string) => void;
+
+  // Doors
+  'door:interact': (interaction: DoorInteraction) => void;
+  'door:knock': (doorId: string) => void;
 
   // Chat
   'chat:message': (message: { content: string; channel: ChatChannel }) => void;

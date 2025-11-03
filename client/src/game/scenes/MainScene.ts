@@ -620,16 +620,16 @@ export class MainScene extends Phaser.Scene {
     });
 
     // Door state updates
-    socket.on('door:updated', (doorData: DoorData) => {
-      const door = this.doors.find(d => d.getDoorId() === doorData.id);
-      if (door) {
-        door.updateState(doorData.state);
-        console.log(`🚪 Door ${doorData.id} updated: ${doorData.state}`);
+    socket.on(SOCKET_EVENTS.DOOR_UPDATE, (update: any) => {
+      const door = this.doors.find(d => d.getDoorId() === update.doorId);
+      if (door && update.state) {
+        door.updateState(update.state);
+        console.log(`🚪 Door ${update.doorId} updated: ${update.state}`);
       }
     });
 
     // Initial doors list
-    socket.on('doors:list', (doorsData: DoorData[]) => {
+    socket.on(SOCKET_EVENTS.DOORS_LIST, (doorsData: DoorData[]) => {
       doorsData.forEach((doorData) => {
         const door = this.doors.find(d => d.getDoorId() === doorData.id);
         if (door) {
@@ -895,9 +895,13 @@ export class MainScene extends Phaser.Scene {
 
   private interactWithDoor(doorId: string) {
     const socket = socketService.getSocket();
-    if (!socket) return;
+    if (!socket || !socket.id) return;
 
     console.log(`🚪 Interacting with door: ${doorId}`);
-    socket.emit('door:interact', doorId);
+    socket.emit(SOCKET_EVENTS.DOOR_INTERACT, {
+      doorId,
+      playerId: socket.id,
+      action: 'toggle' as const
+    });
   }
 }
