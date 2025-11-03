@@ -28,7 +28,7 @@ export interface DoorUpdate {
 
 export interface Furniture {
   id: string;
-  type: 'desk' | 'table' | 'chair' | 'bookshelf' | 'plant' | 'computer' | 'cabinet' | 'sofa';
+  type: 'desk' | 'table' | 'chair' | 'bookshelf' | 'plant' | 'computer' | 'cabinet' | 'sofa' | 'filing-cabinet';
   x: number;
   y: number;
   width: number;

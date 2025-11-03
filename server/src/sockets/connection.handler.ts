@@ -5,6 +5,7 @@ import { SOCKET_EVENTS } from '@mini-gather/shared';
 import { setupMovementHandlers } from './movement.handler.js';
 import { setupRoomHandlers } from './room.handler.js';
 import { setupChatHandlers } from './chat.handler.js';
+import { setupDoorHandlers } from './door.handler.js';
 
 export function setupSocketHandlers(io: Server) {
   io.use(async (socket, next) => {
@@ -55,6 +56,7 @@ export function setupSocketHandlers(io: Server) {
     setupMovementHandlers(io, socket);
     setupRoomHandlers(io, socket);
     setupChatHandlers(io, socket);
+    setupDoorHandlers(io, socket);
 
     // Handle disconnect
     socket.on(SOCKET_EVENTS.DISCONNECT, () => {

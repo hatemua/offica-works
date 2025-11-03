@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { Player } from '../entities/Player';
+import { Furniture } from '../entities/Furniture';
+import { GraphicsGenerator } from '../utils/GraphicsGenerator';
 import { socketService } from '../../services/socket';
 import { useGameStore } from '../../store/gameStore';
 import {
@@ -7,7 +9,8 @@ import {
   PlayerMovement,
   Direction,
   Player as PlayerData,
-  GAME_CONFIG
+  GAME_CONFIG,
+  Furniture as FurnitureData
 } from '@mini-gather/shared';
 
 export class MainScene extends Phaser.Scene {
@@ -23,6 +26,7 @@ export class MainScene extends Phaser.Scene {
   private lastUpdateTime: number = 0;
   private updateRate: number = 1000 / GAME_CONFIG.POSITION_UPDATE_RATE;
   private roomZones: Phaser.GameObjects.Rectangle[] = [];
+  private furniture: Furniture[] = [];
 
   // Camera controls
   private isDragging: boolean = false;
@@ -45,33 +49,10 @@ export class MainScene extends Phaser.Scene {
 
   preload() {
     // NOTE: Avatar sprites are generated programmatically in create()
-    // To use real sprite sheets instead, uncomment the code below and place
-    // avatar1.png through avatar6.png in client/public/assets/sprites/
-
-    // const avatarCount = 6;
-    // for (let i = 1; i <= avatarCount; i++) {
-    //   const spritePath = `/assets/sprites/avatar${i}.png`;
-    //   this.load.spritesheet(`avatar${i}`, spritePath, {
-    //     frameWidth: 32,
-    //     frameHeight: 32
-    //   });
-    // }
-
-    // Create ground tile
-    const groundGraphics = this.make.graphics({ x: 0, y: 0 });
-    groundGraphics.fillStyle(0x34495e, 1);
-    groundGraphics.fillRect(0, 0, 32, 32);
-    groundGraphics.lineStyle(1, 0x2c3e50, 1);
-    groundGraphics.strokeRect(0, 0, 32, 32);
-    groundGraphics.generateTexture('ground', 32, 32);
-    groundGraphics.destroy();
-
-    // Create wall tile
-    const wallGraphics = this.make.graphics({ x: 0, y: 0 });
-    wallGraphics.fillStyle(0x7f8c8d, 1);
-    wallGraphics.fillRect(0, 0, 32, 32);
-    wallGraphics.generateTexture('wall', 32, 32);
-    wallGraphics.destroy();
+    // Generate enhanced graphics (furniture, tiles, decorations)
+    const graphicsGen = new GraphicsGenerator(this, GAME_CONFIG.TILE_SIZE);
+    graphicsGen.generateAll();
+    console.log('✅ Enhanced graphics loaded');
   }
 
   private createPixelArtAvatar(key: string) {
@@ -180,6 +161,9 @@ export class MainScene extends Phaser.Scene {
     // Create room zones
     this.createRoomZones();
 
+    // Create furniture
+    this.createFurniture();
+
     // Setup input
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.wasd = {
@@ -227,12 +211,31 @@ export class MainScene extends Phaser.Scene {
   }
 
   private createGround() {
+    // Create floor with different textures for different areas
     for (let y = 0; y < GAME_CONFIG.MAP_HEIGHT; y++) {
-      for (let x = 0; x < GAME_CONFIG.MAP_WIDTH; x++) {
+      for (let x = 0; x < GAME_CONFIG.MAP_HEIGHT; x++) {
+        const worldX = x * GAME_CONFIG.TILE_SIZE;
+        const worldY = y * GAME_CONFIG.TILE_SIZE;
+
+        // Determine floor type based on position
+        let floorType = 'floor-carpet'; // Default corridor
+
+        // Meeting rooms (gray tile)
+        if ((x >= 5 && x <= 15 && y >= 5 && y <= 15) ||
+            (x >= 35 && x <= 45 && y >= 5 && y <= 15)) {
+          floorType = 'floor-tile';
+        }
+        // Offices (wood floors)
+        else if ((x >= 5 && x <= 12 && y >= 25 && y <= 35) ||
+                 (x >= 20 && x <= 28 && y >= 25 && y <= 35) ||
+                 (x >= 35 && x <= 45 && y >= 25 && y <= 35)) {
+          floorType = 'floor-wood';
+        }
+
         this.add.image(
-          x * GAME_CONFIG.TILE_SIZE + 16,
-          y * GAME_CONFIG.TILE_SIZE + 16,
-          'ground'
+          worldX + GAME_CONFIG.TILE_SIZE / 2,
+          worldY + GAME_CONFIG.TILE_SIZE / 2,
+          floorType
         );
       }
     }
@@ -290,6 +293,41 @@ export class MainScene extends Phaser.Scene {
 
       this.roomZones.push(zone);
     });
+  }
+
+  private createFurniture() {
+    const furnitureItems: FurnitureData[] = [
+      // Meeting Room A - Conference table and chairs
+      { id: 'conf-table-1', type: 'table', x: 280, y: 260, width: 96, height: 64, collidable: true },
+      { id: 'chair-1', type: 'chair', x: 240, y: 260, width: 32, height: 32, collidable: true },
+      { id: 'chair-2', type: 'chair', x: 320, y: 260, width: 32, height: 32, collidable: true },
+      { id: 'chair-3', type: 'chair', x: 280, y: 230, width: 32, height: 32, collidable: true },
+      { id: 'chair-4', type: 'chair', x: 280, y: 290, width: 32, height: 32, collidable: true },
+
+      // Lounge Area - Desks and plants
+      { id: 'desk-1', type: 'desk', x: 650, y: 250, width: 96, height: 64, collidable: true },
+      { id: 'desk-2', type: 'desk', x: 850, y: 250, width: 96, height: 64, collidable: true },
+      { id: 'chair-5', type: 'chair', x: 620, y: 250, width: 32, height: 32, collidable: true },
+      { id: 'chair-6', type: 'chair', x: 820, y: 250, width: 32, height: 32, collidable: true },
+      { id: 'plant-1', type: 'plant', x: 620, y: 350, width: 32, height: 48, collidable: true },
+      { id: 'plant-2', type: 'plant', x: 950, y: 350, width: 32, height: 48, collidable: true },
+
+      // Presentation Hall - Desks and filing cabinets
+      { id: 'desk-3', type: 'desk', x: 250, y: 550, width: 96, height: 64, collidable: true },
+      { id: 'filing-1', type: 'filing-cabinet', x: 450, y: 550, width: 64, height: 96, collidable: true },
+      { id: 'chair-7', type: 'chair', x: 220, y: 550, width: 32, height: 32, collidable: true },
+
+      // Corridor decorations - non-collidable
+      { id: 'plant-3', type: 'plant', x: 100, y: 400, width: 32, height: 48, collidable: false },
+      { id: 'plant-4', type: 'plant', x: 500, y: 100, width: 32, height: 48, collidable: false },
+    ];
+
+    furnitureItems.forEach((data) => {
+      const furniture = new Furniture(this, data);
+      this.furniture.push(furniture);
+    });
+
+    console.log(`✅ Created ${furnitureItems.length} furniture objects`);
   }
 
   private setupSocketListeners() {
@@ -381,6 +419,13 @@ export class MainScene extends Phaser.Scene {
       username,
       avatar
     );
+
+    // Setup collisions with furniture
+    this.furniture.forEach(furn => {
+      if (this.localPlayer) {
+        this.physics.add.collider(this.localPlayer, furn);
+      }
+    });
 
     // Enable camera follow
     this.cameraFollowEnabled = true;
