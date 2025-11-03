@@ -1,6 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import { SOCKET_EVENTS, ChatMessage, ChatChannel } from '@mini-gather/shared';
-import { prisma } from '../config/database';
+import { prisma } from '../config/database.js';
 
 export function setupChatHandlers(io: Server, socket: Socket) {
   socket.on(SOCKET_EVENTS.CHAT_MESSAGE, async (data: { content: string; channel: ChatChannel; roomId?: string }) => {

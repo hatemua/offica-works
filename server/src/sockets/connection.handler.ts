@@ -1,10 +1,10 @@
 import { Server, Socket } from 'socket.io';
-import { authService } from '../services/auth.service';
-import { gameService } from '../services/game.service';
+import { authService } from '../services/auth.service.js';
+import { gameService } from '../services/game.service.js';
 import { SOCKET_EVENTS } from '@mini-gather/shared';
-import { setupMovementHandlers } from './movement.handler';
-import { setupRoomHandlers } from './room.handler';
-import { setupChatHandlers } from './chat.handler';
+import { setupMovementHandlers } from './movement.handler.js';
+import { setupRoomHandlers } from './room.handler.js';
+import { setupChatHandlers } from './chat.handler.js';
 
 export function setupSocketHandlers(io: Server) {
   io.use(async (socket, next) => {

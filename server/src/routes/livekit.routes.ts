@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { liveKitService } from '../services/livekit.service';
-import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { authService } from '../services/auth.service';
+import { liveKitService } from '../services/livekit.service.js';
+import { authMiddleware, AuthRequest } from '../middleware/auth.js';
+import { authService } from '../services/auth.service.js';
 
 const router = Router();
 

@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../config/database';
+import { prisma } from '../config/database.js';
 import { UserCredentials, RegisterData, AuthResponse } from '@mini-gather/shared';
 
 const SALT_ROUNDS = 10;

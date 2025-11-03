@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { gameService } from '../services/game.service';
+import { gameService } from '../services/game.service.js';
 import { SOCKET_EVENTS, PlayerMovement } from '@mini-gather/shared';
 
 export function setupMovementHandlers(io: Server, socket: Socket) {

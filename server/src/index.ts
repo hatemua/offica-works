@@ -3,10 +3,10 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { connectDatabase, disconnectDatabase } from './config/database';
-import { setupSocketHandlers } from './sockets/connection.handler';
-import authRoutes from './routes/auth.routes';
-import livekitRoutes from './routes/livekit.routes';
+import { connectDatabase, disconnectDatabase } from './config/database.js';
+import { setupSocketHandlers } from './sockets/connection.handler.js';
+import authRoutes from './routes/auth.routes.js';
+import livekitRoutes from './routes/livekit.routes.js';
 
 // Load environment variables
 dotenv.config();
