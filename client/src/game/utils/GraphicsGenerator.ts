@@ -224,23 +224,28 @@ export class GraphicsGenerator {
   /**
    * Create decoration: Filing Cabinet
    */
-  createFilingCabinet(key: string = 'cabinet'): void {
-    const width = 48;
-    const height = 64;
+  createFilingCabinet(key: string = 'filing-cabinet'): void {
+    const width = 64;
+    const height = 96;
     const graphics = this.scene.make.graphics({ x: 0, y: 0 });
 
     // Cabinet body
     graphics.fillStyle(0x7F8C8D, 1);
     graphics.fillRect(0, 0, width, height);
 
-    // Drawers
+    // Drawers (4 drawers)
     graphics.lineStyle(2, 0x5C6A7D, 1);
-    for (let i = 0; i < 3; i++) {
-      graphics.strokeRect(0, i * (height / 3), width, height / 3);
+    for (let i = 0; i < 4; i++) {
+      graphics.strokeRect(0, i * (height / 4), width, height / 4);
       // Drawer handles
       graphics.fillStyle(0x2C3E50, 1);
-      graphics.fillCircle(width / 2, i * (height / 3) + height / 6, 3);
+      graphics.fillCircle(width / 2, i * (height / 4) + height / 8, 4);
     }
+
+    // Shadow for depth
+    graphics.fillStyle(0x000000, 0.2);
+    graphics.fillRect(2, 2, width, height);
+    graphics.fillRect(0, 0, width, height);
 
     graphics.generateTexture(key, width, height);
     graphics.destroy();
@@ -328,12 +333,165 @@ export class GraphicsGenerator {
 
     // Decorations
     this.createPlant('plant');
-    this.createFilingCabinet('cabinet');
+    this.createFilingCabinet('filing-cabinet');
+    this.createFilingCabinet('cabinet'); // Legacy name
     this.createWindow('window');
     this.createPainting('painting-red', 0xE74C3C);
     this.createPainting('painting-blue', 0x3498DB);
     this.createPainting('painting-green', 0x27AE60);
 
+    // New furniture types
+    this.createBookshelf('bookshelf');
+    this.createSofa('sofa');
+    this.createWhiteboard('whiteboard');
+    this.createMonitor('monitor');
+
     console.log('✅ All enhanced graphics generated');
+  }
+
+  /**
+   * Create furniture: Bookshelf
+   */
+  createBookshelf(key: string = 'bookshelf'): void {
+    const width = 64;
+    const height = 96;
+    const graphics = this.scene.make.graphics({ x: 0, y: 0 });
+
+    // Shelf frame
+    graphics.fillStyle(0x654321, 1);
+    graphics.fillRect(0, 0, width, height);
+
+    // Shelves (5 levels)
+    graphics.fillStyle(0x8B4513, 1);
+    for (let i = 0; i < 5; i++) {
+      const shelfY = i * (height / 5);
+      graphics.fillRect(0, shelfY, width, 4);
+
+      // Books on shelves
+      graphics.fillStyle(0xE74C3C, 1);
+      graphics.fillRect(4, shelfY + 6, 12, 14);
+      graphics.fillStyle(0x3498DB, 1);
+      graphics.fillRect(18, shelfY + 6, 10, 14);
+      graphics.fillStyle(0x27AE60, 1);
+      graphics.fillRect(30, shelfY + 6, 14, 14);
+      graphics.fillStyle(0xF39C12, 1);
+      graphics.fillRect(46, shelfY + 6, 12, 14);
+    }
+
+    // Frame border
+    graphics.lineStyle(2, 0x3E2A1A, 1);
+    graphics.strokeRect(0, 0, width, height);
+
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
+
+    console.log(`✅ Bookshelf created: ${key}`);
+  }
+
+  /**
+   * Create furniture: Sofa
+   */
+  createSofa(key: string = 'sofa'): void {
+    const width = 96;
+    const height = 48;
+    const graphics = this.scene.make.graphics({ x: 0, y: 0 });
+
+    // Sofa base
+    graphics.fillStyle(0x34495E, 1);
+    graphics.fillRect(0, 12, width, height - 12);
+
+    // Cushions
+    graphics.fillStyle(0x5D6D7E, 1);
+    graphics.fillRect(8, 16, 24, 24);
+    graphics.fillRect(36, 16, 24, 24);
+    graphics.fillRect(64, 16, 24, 24);
+
+    // Armrests
+    graphics.fillStyle(0x2C3E50, 1);
+    graphics.fillRect(0, 12, 8, height - 8);
+    graphics.fillRect(width - 8, 12, 8, height - 8);
+
+    // Back cushions
+    graphics.fillStyle(0x45627E, 1);
+    graphics.fillRect(8, 0, 24, 16);
+    graphics.fillRect(36, 0, 24, 16);
+    graphics.fillRect(64, 0, 24, 16);
+
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
+
+    console.log(`✅ Sofa created: ${key}`);
+  }
+
+  /**
+   * Create furniture: Whiteboard
+   */
+  createWhiteboard(key: string = 'whiteboard'): void {
+    const width = 96;
+    const height = 64;
+    const graphics = this.scene.make.graphics({ x: 0, y: 0 });
+
+    // Board frame
+    graphics.fillStyle(0x2C3E50, 1);
+    graphics.fillRect(0, 0, width, height);
+
+    // White surface
+    graphics.fillStyle(0xFFFFFF, 1);
+    graphics.fillRect(4, 4, width - 8, height - 8);
+
+    // Some marker drawings
+    graphics.lineStyle(2, 0x3498DB, 1);
+    graphics.lineBetween(12, 16, 40, 16);
+    graphics.lineBetween(12, 28, 50, 28);
+
+    graphics.fillStyle(0xE74C3C, 1);
+    graphics.fillCircle(70, 20, 8);
+
+    graphics.lineStyle(2, 0x27AE60, 1);
+    graphics.strokeRect(60, 36, 24, 16);
+
+    // Marker tray
+    graphics.fillStyle(0x7F8C8D, 1);
+    graphics.fillRect(width / 2 - 16, height - 8, 32, 6);
+
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
+
+    console.log(`✅ Whiteboard created: ${key}`);
+  }
+
+  /**
+   * Create furniture: Computer Monitor
+   */
+  createMonitor(key: string = 'monitor'): void {
+    const width = 32;
+    const height = 32;
+    const graphics = this.scene.make.graphics({ x: 0, y: 0 });
+
+    // Monitor stand
+    graphics.fillStyle(0x2C3E50, 1);
+    graphics.fillRect(12, 24, 8, 6);
+    graphics.fillRect(8, 28, 16, 4);
+
+    // Monitor frame
+    graphics.fillStyle(0x1C2833, 1);
+    graphics.fillRect(4, 4, 24, 22);
+
+    // Screen
+    graphics.fillStyle(0x1F618D, 1);
+    graphics.fillRect(6, 6, 20, 18);
+
+    // Screen content (gradient)
+    graphics.fillStyle(0x3498DB, 0.6);
+    graphics.fillRect(8, 8, 16, 6);
+
+    // Power light
+    graphics.fillStyle(0x27AE60, 1);
+    graphics.fillCircle(width / 2, 26, 1);
+
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
+
+    console.log(`✅ Monitor created: ${key}`);
   }
 }

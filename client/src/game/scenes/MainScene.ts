@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Player } from '../entities/Player';
 import { Furniture } from '../entities/Furniture';
+import { Door } from '../entities/Door';
 import { GraphicsGenerator } from '../utils/GraphicsGenerator';
 import { socketService } from '../../services/socket';
 import { useGameStore } from '../../store/gameStore';
@@ -10,7 +11,8 @@ import {
   Direction,
   Player as PlayerData,
   GAME_CONFIG,
-  Furniture as FurnitureData
+  Furniture as FurnitureData,
+  Door as DoorData
 } from '@mini-gather/shared';
 
 export class MainScene extends Phaser.Scene {
@@ -27,6 +29,8 @@ export class MainScene extends Phaser.Scene {
   private updateRate: number = 1000 / GAME_CONFIG.POSITION_UPDATE_RATE;
   private roomZones: Phaser.GameObjects.Rectangle[] = [];
   private furniture: Furniture[] = [];
+  private doors: Door[] = [];
+  private eKey?: Phaser.Input.Keyboard.Key;
 
   // Camera controls
   private isDragging: boolean = false;
@@ -164,8 +168,12 @@ export class MainScene extends Phaser.Scene {
     // Create furniture
     this.createFurniture();
 
+    // Create doors
+    this.createDoors();
+
     // Setup input
     this.cursors = this.input.keyboard?.createCursorKeys();
+    this.eKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     this.wasd = {
       up: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
       down: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
@@ -242,34 +250,104 @@ export class MainScene extends Phaser.Scene {
   }
 
   private createWalls() {
-    const wallPositions = [
-      // Top wall
-      ...Array.from({ length: GAME_CONFIG.MAP_WIDTH }, (_, i) => ({ x: i, y: 0 })),
-      // Bottom wall
-      ...Array.from({ length: GAME_CONFIG.MAP_WIDTH }, (_, i) => ({ x: i, y: GAME_CONFIG.MAP_HEIGHT - 1 })),
-      // Left wall
-      ...Array.from({ length: GAME_CONFIG.MAP_HEIGHT }, (_, i) => ({ x: 0, y: i })),
-      // Right wall
-      ...Array.from({ length: GAME_CONFIG.MAP_HEIGHT }, (_, i) => ({ x: GAME_CONFIG.MAP_WIDTH - 1, y: i })),
-    ];
+    const tile = GAME_CONFIG.TILE_SIZE;
+    const wallPositions: { x: number; y: number }[] = [];
 
+    // Outer boundary walls
+    // Top wall
+    for (let i = 0; i < GAME_CONFIG.MAP_WIDTH; i++) wallPositions.push({ x: i, y: 0 });
+    // Bottom wall
+    for (let i = 0; i < GAME_CONFIG.MAP_WIDTH; i++) wallPositions.push({ x: i, y: GAME_CONFIG.MAP_HEIGHT - 1 });
+    // Left wall
+    for (let i = 0; i < GAME_CONFIG.MAP_HEIGHT; i++) wallPositions.push({ x: 0, y: i });
+    // Right wall
+    for (let i = 0; i < GAME_CONFIG.MAP_HEIGHT; i++) wallPositions.push({ x: GAME_CONFIG.MAP_WIDTH - 1, y: i });
+
+    // Meeting Room 1 (top-left) - walls
+    for (let x = 5; x <= 15; x++) {
+      wallPositions.push({ x, y: 5 }); // Top wall
+      wallPositions.push({ x, y: 15 }); // Bottom wall
+    }
+    for (let y = 5; y <= 15; y++) {
+      wallPositions.push({ x: 5, y }); // Left wall
+      wallPositions.push({ x: 15, y }); // Right wall
+    }
+    // Door opening at y=10, x=15
+    wallPositions.splice(wallPositions.findIndex(p => p.x === 15 && p.y === 10), 1);
+
+    // Meeting Room 2 (top-right) - walls
+    for (let x = 35; x <= 45; x++) {
+      wallPositions.push({ x, y: 5 }); // Top wall
+      wallPositions.push({ x, y: 15 }); // Bottom wall
+    }
+    for (let y = 5; y <= 15; y++) {
+      wallPositions.push({ x: 35, y }); // Left wall
+      wallPositions.push({ x: 45, y }); // Right wall
+    }
+    // Door opening at y=10, x=35
+    wallPositions.splice(wallPositions.findIndex(p => p.x === 35 && p.y === 10), 1);
+
+    // Bureau 1 (bottom-left) - small office
+    for (let x = 5; x <= 12; x++) {
+      wallPositions.push({ x, y: 25 }); // Top wall
+      wallPositions.push({ x, y: 32 }); // Bottom wall
+    }
+    for (let y = 25; y <= 32; y++) {
+      wallPositions.push({ x: 5, y }); // Left wall
+      wallPositions.push({ x: 12, y }); // Right wall
+    }
+    // Door opening at y=28, x=12
+    wallPositions.splice(wallPositions.findIndex(p => p.x === 12 && p.y === 28), 1);
+
+    // Bureau 2 (bottom-middle)
+    for (let x = 16; x <= 23; x++) {
+      wallPositions.push({ x, y: 25 }); // Top wall
+      wallPositions.push({ x, y: 32 }); // Bottom wall
+    }
+    for (let y = 25; y <= 32; y++) {
+      wallPositions.push({ x: 16, y }); // Left wall
+      wallPositions.push({ x: 23, y }); // Right wall
+    }
+    // Door opening at y=28, x=23
+    wallPositions.splice(wallPositions.findIndex(p => p.x === 23 && p.y === 28), 1);
+
+    // Bureau 3 (bottom-right)
+    for (let x = 35; x <= 42; x++) {
+      wallPositions.push({ x, y: 25 }); // Top wall
+      wallPositions.push({ x, y: 32 }); // Bottom wall
+    }
+    for (let y = 25; y <= 32; y++) {
+      wallPositions.push({ x: 35, y }); // Left wall
+      wallPositions.push({ x: 42, y }); // Right wall
+    }
+    // Door opening at y=28, x=35
+    wallPositions.splice(wallPositions.findIndex(p => p.x === 35 && p.y === 28), 1);
+
+    // Create wall sprites
     wallPositions.forEach(({ x, y }) => {
       const wall = this.add.rectangle(
-        x * GAME_CONFIG.TILE_SIZE + 16,
-        y * GAME_CONFIG.TILE_SIZE + 16,
-        GAME_CONFIG.TILE_SIZE,
-        GAME_CONFIG.TILE_SIZE,
-        0x7f8c8d
+        x * tile + tile / 2,
+        y * tile + tile / 2,
+        tile,
+        tile,
+        0x5C6A7D
       );
+      wall.setStrokeStyle(1, 0x4A5668);
       this.physics.add.existing(wall, true);
     });
+
+    console.log(`✅ Created ${wallPositions.length} wall tiles`);
   }
 
   private createRoomZones() {
+    const tile = GAME_CONFIG.TILE_SIZE;
     const rooms = [
-      { x: 200, y: 200, width: 300, height: 200, color: 0x3498db, name: 'Conference Room A' },
-      { x: 600, y: 200, width: 400, height: 300, color: 0x2ecc71, name: 'Lounge Area' },
-      { x: 200, y: 500, width: 400, height: 250, color: 0xe74c3c, name: 'Presentation Hall' },
+      { x: 6 * tile, y: 6 * tile, width: 9 * tile, height: 9 * tile, color: 0x3498db, name: 'Meeting Room 1' },
+      { x: 36 * tile, y: 6 * tile, width: 9 * tile, height: 9 * tile, color: 0x2ecc71, name: 'Meeting Room 2' },
+      { x: 6 * tile, y: 26 * tile, width: 6 * tile, height: 6 * tile, color: 0xe74c3c, name: 'Bureau 1' },
+      { x: 17 * tile, y: 26 * tile, width: 6 * tile, height: 6 * tile, color: 0xf39c12, name: 'Bureau 2' },
+      { x: 36 * tile, y: 26 * tile, width: 6 * tile, height: 6 * tile, color: 0x9b59b6, name: 'Bureau 3' },
+      { x: 18 * tile, y: 6 * tile, width: 14 * tile, height: 10 * tile, color: 0x1abc9c, name: 'Open Workspace' },
     ];
 
     rooms.forEach((room) => {
@@ -279,48 +357,117 @@ export class MainScene extends Phaser.Scene {
         room.width,
         room.height,
         room.color,
-        0.1
+        0.05
       );
-      zone.setStrokeStyle(2, room.color, 0.5);
+      zone.setStrokeStyle(2, room.color, 0.3);
 
       // Add room label
       this.add.text(room.x + 10, room.y + 10, room.name, {
-        fontSize: '16px',
+        fontSize: '14px',
         color: '#ffffff',
         backgroundColor: '#00000080',
-        padding: { x: 8, y: 4 },
+        padding: { x: 6, y: 3 },
       });
 
       this.roomZones.push(zone);
     });
+
+    console.log(`✅ Created ${rooms.length} room zones`);
   }
 
   private createFurniture() {
-    const furnitureItems: FurnitureData[] = [
-      // Meeting Room A - Conference table and chairs
-      { id: 'conf-table-1', type: 'table', x: 280, y: 260, width: 96, height: 64, collidable: true },
-      { id: 'chair-1', type: 'chair', x: 240, y: 260, width: 32, height: 32, collidable: true },
-      { id: 'chair-2', type: 'chair', x: 320, y: 260, width: 32, height: 32, collidable: true },
-      { id: 'chair-3', type: 'chair', x: 280, y: 230, width: 32, height: 32, collidable: true },
-      { id: 'chair-4', type: 'chair', x: 280, y: 290, width: 32, height: 32, collidable: true },
+    const tile = GAME_CONFIG.TILE_SIZE;
+    const furnitureItems: FurnitureData[] = [];
 
-      // Lounge Area - Desks and plants
-      { id: 'desk-1', type: 'desk', x: 650, y: 250, width: 96, height: 64, collidable: true },
-      { id: 'desk-2', type: 'desk', x: 850, y: 250, width: 96, height: 64, collidable: true },
-      { id: 'chair-5', type: 'chair', x: 620, y: 250, width: 32, height: 32, collidable: true },
-      { id: 'chair-6', type: 'chair', x: 820, y: 250, width: 32, height: 32, collidable: true },
-      { id: 'plant-1', type: 'plant', x: 620, y: 350, width: 32, height: 48, collidable: true },
-      { id: 'plant-2', type: 'plant', x: 950, y: 350, width: 32, height: 48, collidable: true },
+    // ===== MEETING ROOM 1 (top-left) =====
+    // Large conference table in center
+    furnitureItems.push({ id: 'mr1-table', type: 'table', x: 10 * tile, y: 10 * tile, width: 128, height: 96, collidable: true });
+    // Chairs around table (8 chairs)
+    furnitureItems.push({ id: 'mr1-c1', type: 'chair', x: 7.5 * tile, y: 9 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'mr1-c2', type: 'chair', x: 7.5 * tile, y: 11 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'mr1-c3', type: 'chair', x: 12.5 * tile, y: 9 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'mr1-c4', type: 'chair', x: 12.5 * tile, y: 11 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'mr1-c5', type: 'chair', x: 9 * tile, y: 7.5 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'mr1-c6', type: 'chair', x: 11 * tile, y: 7.5 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'mr1-c7', type: 'chair', x: 9 * tile, y: 12.5 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'mr1-c8', type: 'chair', x: 11 * tile, y: 12.5 * tile, width: 32, height: 32, collidable: false });
+    // Whiteboard
+    furnitureItems.push({ id: 'mr1-wb', type: 'table', x: 10 * tile, y: 6.5 * tile, width: 96, height: 64, collidable: true });
+    // Plants in corners
+    furnitureItems.push({ id: 'mr1-p1', type: 'plant', x: 6.5 * tile, y: 6.5 * tile, width: 32, height: 48, collidable: false });
+    furnitureItems.push({ id: 'mr1-p2', type: 'plant', x: 13.5 * tile, y: 6.5 * tile, width: 32, height: 48, collidable: false });
 
-      // Presentation Hall - Desks and filing cabinets
-      { id: 'desk-3', type: 'desk', x: 250, y: 550, width: 96, height: 64, collidable: true },
-      { id: 'filing-1', type: 'filing-cabinet', x: 450, y: 550, width: 64, height: 96, collidable: true },
-      { id: 'chair-7', type: 'chair', x: 220, y: 550, width: 32, height: 32, collidable: true },
+    // ===== MEETING ROOM 2 (top-right) =====
+    // Conference table
+    furnitureItems.push({ id: 'mr2-table', type: 'table', x: 40 * tile, y: 10 * tile, width: 128, height: 96, collidable: true });
+    // Chairs (8 chairs)
+    furnitureItems.push({ id: 'mr2-c1', type: 'chair', x: 37.5 * tile, y: 9 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'mr2-c2', type: 'chair', x: 37.5 * tile, y: 11 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'mr2-c3', type: 'chair', x: 42.5 * tile, y: 9 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'mr2-c4', type: 'chair', x: 42.5 * tile, y: 11 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'mr2-c5', type: 'chair', x: 39 * tile, y: 7.5 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'mr2-c6', type: 'chair', x: 41 * tile, y: 7.5 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'mr2-c7', type: 'chair', x: 39 * tile, y: 12.5 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'mr2-c8', type: 'chair', x: 41 * tile, y: 12.5 * tile, width: 32, height: 32, collidable: false });
+    // Whiteboard
+    furnitureItems.push({ id: 'mr2-wb', type: 'table', x: 40 * tile, y: 6.5 * tile, width: 96, height: 64, collidable: true });
+    // Sofa
+    furnitureItems.push({ id: 'mr2-sofa', type: 'sofa', x: 40 * tile, y: 13.5 * tile, width: 96, height: 48, collidable: true });
 
-      // Corridor decorations - non-collidable
-      { id: 'plant-3', type: 'plant', x: 100, y: 400, width: 32, height: 48, collidable: false },
-      { id: 'plant-4', type: 'plant', x: 500, y: 100, width: 32, height: 48, collidable: false },
-    ];
+    // ===== BUREAU 1 (bottom-left private office) =====
+    furnitureItems.push({ id: 'b1-desk', type: 'desk', x: 8.5 * tile, y: 28.5 * tile, width: 96, height: 64, collidable: true });
+    furnitureItems.push({ id: 'b1-chair', type: 'chair', x: 7.5 * tile, y: 28.5 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'b1-filing', type: 'filing-cabinet', x: 10.5 * tile, y: 26.5 * tile, width: 64, height: 96, collidable: true });
+    furnitureItems.push({ id: 'b1-shelf', type: 'bookshelf', x: 6.5 * tile, y: 26.5 * tile, width: 64, height: 96, collidable: true });
+    furnitureItems.push({ id: 'b1-plant', type: 'plant', x: 10.5 * tile, y: 30.5 * tile, width: 32, height: 48, collidable: false });
+
+    // ===== BUREAU 2 (bottom-middle office) =====
+    furnitureItems.push({ id: 'b2-desk', type: 'desk', x: 19.5 * tile, y: 28.5 * tile, width: 96, height: 64, collidable: true });
+    furnitureItems.push({ id: 'b2-chair', type: 'chair', x: 18.5 * tile, y: 28.5 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'b2-filing', type: 'filing-cabinet', x: 21.5 * tile, y: 26.5 * tile, width: 64, height: 96, collidable: true });
+    furnitureItems.push({ id: 'b2-shelf', type: 'bookshelf', x: 17.5 * tile, y: 30.5 * tile, width: 64, height: 96, collidable: true });
+    furnitureItems.push({ id: 'b2-plant', type: 'plant', x: 21.5 * tile, y: 30.5 * tile, width: 32, height: 48, collidable: false });
+
+    // ===== BUREAU 3 (bottom-right office) =====
+    furnitureItems.push({ id: 'b3-desk', type: 'desk', x: 38.5 * tile, y: 28.5 * tile, width: 96, height: 64, collidable: true });
+    furnitureItems.push({ id: 'b3-chair', type: 'chair', x: 37.5 * tile, y: 28.5 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'b3-filing', type: 'filing-cabinet', x: 40.5 * tile, y: 26.5 * tile, width: 64, height: 96, collidable: true });
+    furnitureItems.push({ id: 'b3-shelf', type: 'bookshelf', x: 36.5 * tile, y: 26.5 * tile, width: 64, height: 96, collidable: true });
+    furnitureItems.push({ id: 'b3-sofa', type: 'sofa', x: 38.5 * tile, y: 30.5 * tile, width: 96, height: 48, collidable: true });
+
+    // ===== OPEN WORKSPACE (center area with desk clusters) =====
+    // Desk cluster 1 (4 desks facing each other)
+    furnitureItems.push({ id: 'ws-d1', type: 'desk', x: 20 * tile, y: 8 * tile, width: 96, height: 64, collidable: true });
+    furnitureItems.push({ id: 'ws-d2', type: 'desk', x: 23 * tile, y: 8 * tile, width: 96, height: 64, collidable: true });
+    furnitureItems.push({ id: 'ws-d3', type: 'desk', x: 20 * tile, y: 10.5 * tile, width: 96, height: 64, collidable: true });
+    furnitureItems.push({ id: 'ws-d4', type: 'desk', x: 23 * tile, y: 10.5 * tile, width: 96, height: 64, collidable: true });
+    furnitureItems.push({ id: 'ws-c1', type: 'chair', x: 19 * tile, y: 8 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'ws-c2', type: 'chair', x: 22 * tile, y: 8 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'ws-c3', type: 'chair', x: 19 * tile, y: 10.5 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'ws-c4', type: 'chair', x: 22 * tile, y: 10.5 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'ws-m1', type: 'computer', x: 20.5 * tile, y: 7.8 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'ws-m2', type: 'computer', x: 23.5 * tile, y: 7.8 * tile, width: 32, height: 32, collidable: false });
+
+    // Desk cluster 2
+    furnitureItems.push({ id: 'ws-d5', type: 'desk', x: 27 * tile, y: 8 * tile, width: 96, height: 64, collidable: true });
+    furnitureItems.push({ id: 'ws-d6', type: 'desk', x: 30 * tile, y: 8 * tile, width: 96, height: 64, collidable: true });
+    furnitureItems.push({ id: 'ws-d7', type: 'desk', x: 27 * tile, y: 10.5 * tile, width: 96, height: 64, collidable: true });
+    furnitureItems.push({ id: 'ws-d8', type: 'desk', x: 30 * tile, y: 10.5 * tile, width: 96, height: 64, collidable: true });
+    furnitureItems.push({ id: 'ws-c5', type: 'chair', x: 26 * tile, y: 8 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'ws-c6', type: 'chair', x: 29 * tile, y: 8 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'ws-c7', type: 'chair', x: 26 * tile, y: 10.5 * tile, width: 32, height: 32, collidable: false });
+    furnitureItems.push({ id: 'ws-c8', type: 'chair', x: 29 * tile, y: 10.5 * tile, width: 32, height: 32, collidable: false });
+
+    // Plants and decorations
+    furnitureItems.push({ id: 'ws-p1', type: 'plant', x: 25.5 * tile, y: 14 * tile, width: 32, height: 48, collidable: false });
+    furnitureItems.push({ id: 'ws-p2', type: 'plant', x: 18.5 * tile, y: 14 * tile, width: 32, height: 48, collidable: false });
+    furnitureItems.push({ id: 'ws-p3', type: 'plant', x: 31.5 * tile, y: 14 * tile, width: 32, height: 48, collidable: false });
+
+    // ===== CORRIDOR DECORATIONS =====
+    furnitureItems.push({ id: 'cor-p1', type: 'plant', x: 3 * tile, y: 18 * tile, width: 32, height: 48, collidable: false });
+    furnitureItems.push({ id: 'cor-p2', type: 'plant', x: 47 * tile, y: 18 * tile, width: 32, height: 48, collidable: false });
+    furnitureItems.push({ id: 'cor-p3', type: 'plant', x: 25 * tile, y: 3 * tile, width: 32, height: 48, collidable: false });
+    furnitureItems.push({ id: 'cor-p4', type: 'plant', x: 25 * tile, y: 36 * tile, width: 32, height: 48, collidable: false });
 
     furnitureItems.forEach((data) => {
       const furniture = new Furniture(this, data);
@@ -328,6 +475,85 @@ export class MainScene extends Phaser.Scene {
     });
 
     console.log(`✅ Created ${furnitureItems.length} furniture objects`);
+  }
+
+  private createDoors() {
+    const tile = GAME_CONFIG.TILE_SIZE;
+    // Initial doors - will sync with server
+    const doorData: DoorData[] = [
+      // Meeting Room 1 door
+      {
+        id: 'door-meeting-1',
+        x: 15 * tile + tile / 2,
+        y: 10 * tile + tile / 2,
+        width: 32,
+        height: 64,
+        state: 'closed',
+        roomId: 'meeting-room-1',
+        autoClose: true,
+        autoCloseDelay: GAME_CONFIG.DOOR_AUTO_CLOSE_DELAY,
+      },
+      // Meeting Room 2 door
+      {
+        id: 'door-meeting-2',
+        x: 35 * tile + tile / 2,
+        y: 10 * tile + tile / 2,
+        width: 32,
+        height: 64,
+        state: 'closed',
+        roomId: 'meeting-room-2',
+        autoClose: true,
+        autoCloseDelay: GAME_CONFIG.DOOR_AUTO_CLOSE_DELAY,
+      },
+      // Bureau 1 door
+      {
+        id: 'door-bureau-1',
+        x: 12 * tile + tile / 2,
+        y: 28 * tile + tile / 2,
+        width: 32,
+        height: 64,
+        state: 'closed',
+        roomId: 'bureau-1',
+        autoClose: true,
+        autoCloseDelay: GAME_CONFIG.DOOR_AUTO_CLOSE_DELAY,
+      },
+      // Bureau 2 door
+      {
+        id: 'door-bureau-2',
+        x: 23 * tile + tile / 2,
+        y: 28 * tile + tile / 2,
+        width: 32,
+        height: 64,
+        state: 'closed',
+        roomId: 'bureau-2',
+        autoClose: true,
+        autoCloseDelay: GAME_CONFIG.DOOR_AUTO_CLOSE_DELAY,
+      },
+      // Bureau 3 door
+      {
+        id: 'door-bureau-3',
+        x: 35 * tile + tile / 2,
+        y: 28 * tile + tile / 2,
+        width: 32,
+        height: 64,
+        state: 'closed',
+        roomId: 'bureau-3',
+        autoClose: true,
+        autoCloseDelay: GAME_CONFIG.DOOR_AUTO_CLOSE_DELAY,
+      },
+    ];
+
+    doorData.forEach((data) => {
+      const door = new Door(this, data);
+      this.doors.push(door);
+
+      // Add collision with local player (will be setup when player is created)
+      if (this.localPlayer) {
+        this.physics.add.collider(this.localPlayer, door);
+      }
+    });
+
+    console.log(`✅ Created ${doorData.length} doors`);
   }
 
   private setupSocketListeners() {
@@ -392,6 +618,26 @@ export class MainScene extends Phaser.Scene {
         console.log(`📡 Players in proximity (${playerIds.length}):`, playerIds);
       }
     });
+
+    // Door state updates
+    socket.on('door:updated', (doorData: DoorData) => {
+      const door = this.doors.find(d => d.getDoorId() === doorData.id);
+      if (door) {
+        door.updateState(doorData.state);
+        console.log(`🚪 Door ${doorData.id} updated: ${doorData.state}`);
+      }
+    });
+
+    // Initial doors list
+    socket.on('doors:list', (doorsData: DoorData[]) => {
+      doorsData.forEach((doorData) => {
+        const door = this.doors.find(d => d.getDoorId() === doorData.id);
+        if (door) {
+          door.updateState(doorData.state);
+        }
+      });
+      console.log(`🚪 Synced ${doorsData.length} door states`);
+    });
   }
 
   private createLocalPlayer(playerId: string, username: string, avatar: string) {
@@ -424,6 +670,13 @@ export class MainScene extends Phaser.Scene {
     this.furniture.forEach(furn => {
       if (this.localPlayer) {
         this.physics.add.collider(this.localPlayer, furn);
+      }
+    });
+
+    // Setup collisions with doors
+    this.doors.forEach(door => {
+      if (this.localPlayer) {
+        this.physics.add.collider(this.localPlayer, door);
       }
     });
 
@@ -549,6 +802,9 @@ export class MainScene extends Phaser.Scene {
   update(time: number) {
     if (!this.localPlayer || !this.cursors || !this.wasd) return;
 
+    // Check door proximity and handle interaction
+    this.updateDoorInteraction();
+
     // Skip movement if space key is down (panning mode)
     if (this.spaceKey?.isDown) return;
 
@@ -618,5 +874,30 @@ export class MainScene extends Phaser.Scene {
     };
 
     socket.emit(SOCKET_EVENTS.PLAYER_MOVE, movement);
+  }
+
+  private updateDoorInteraction() {
+    if (!this.localPlayer) return;
+
+    // Check proximity for all doors
+    this.doors.forEach(door => {
+      door.checkPlayerProximity(this.localPlayer!.x, this.localPlayer!.y);
+    });
+
+    // Handle E key press for door interaction
+    if (Phaser.Input.Keyboard.JustDown(this.eKey!)) {
+      const nearestDoor = this.doors.find(door => door.canInteract());
+      if (nearestDoor) {
+        this.interactWithDoor(nearestDoor.getDoorId());
+      }
+    }
+  }
+
+  private interactWithDoor(doorId: string) {
+    const socket = socketService.getSocket();
+    if (!socket) return;
+
+    console.log(`🚪 Interacting with door: ${doorId}`);
+    socket.emit('door:interact', doorId);
   }
 }

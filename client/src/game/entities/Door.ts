@@ -26,16 +26,16 @@ export class Door extends Phaser.GameObjects.Container {
   private createDoorVisual(): void {
     const { width, height, state } = this.doorData;
 
-    // Door frame (always visible)
+    // Door frame (thicker, more visible)
     this.doorFrame = this.scene.add.rectangle(
       0,
       0,
       width,
       height,
-      0x8B4513, // Brown wood color
+      0x654321, // Dark brown wood
       1
     );
-    this.doorFrame.setStrokeStyle(2, 0x654321);
+    this.doorFrame.setStrokeStyle(3, 0x3E2A1A);
     this.add(this.doorFrame);
 
     // Door body (changes based on state)
@@ -43,17 +43,30 @@ export class Door extends Phaser.GameObjects.Container {
     this.doorSprite = this.scene.add.rectangle(
       0,
       0,
-      width - 4,
-      height - 4,
+      width - 8,
+      height - 8,
       doorColor,
-      state === DOOR_STATES.OPEN ? 0.3 : 0.9
+      state === DOOR_STATES.OPEN ? 0.4 : 1.0
     );
     this.add(this.doorSprite);
+
+    // Add door panels (decorative lines)
+    if (state !== DOOR_STATES.OPEN) {
+      const panel1 = this.scene.add.rectangle(0, -height / 4, width - 12, 2, 0x8B6914, 0.5);
+      const panel2 = this.scene.add.rectangle(0, height / 4, width - 12, 2, 0x8B6914, 0.5);
+      this.add(panel1);
+      this.add(panel2);
+    }
+
+    // Door handle/knob
+    const knob = this.scene.add.circle(width / 3, 0, 4, 0xC0C0C0, 1);
+    knob.setStrokeStyle(1, 0x808080);
+    this.add(knob);
 
     // Lock icon for locked doors
     if (state === DOOR_STATES.LOCKED) {
       this.lockIcon = this.scene.add.text(0, 0, '🔒', {
-        fontSize: '20px',
+        fontSize: '24px',
         align: 'center',
       });
       this.lockIcon.setOrigin(0.5);
@@ -64,13 +77,13 @@ export class Door extends Phaser.GameObjects.Container {
   private getDoorColor(state: DoorState): number {
     switch (state) {
       case DOOR_STATES.OPEN:
-        return 0x90EE90; // Light green
+        return 0xA0D890; // Pale green (more subtle)
       case DOOR_STATES.CLOSED:
-        return 0xD2691E; // Chocolate brown
+        return 0x8B5A3C; // Rich brown wood
       case DOOR_STATES.LOCKED:
-        return 0xCD5C5C; // Indian red
+        return 0xB85450; // Muted red
       default:
-        return 0x8B4513; // Saddle brown
+        return 0x8B5A3C; // Rich brown wood
     }
   }
 
@@ -91,7 +104,7 @@ export class Door extends Phaser.GameObjects.Container {
     this.doorData.state = newState;
 
     // Update visual
-    this.doorSprite.setFillStyle(this.getDoorColor(newState), newState === DOOR_STATES.OPEN ? 0.3 : 0.9);
+    this.doorSprite.setFillStyle(this.getDoorColor(newState), newState === DOOR_STATES.OPEN ? 0.4 : 1.0);
 
     // Update collision
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -104,7 +117,7 @@ export class Door extends Phaser.GameObjects.Container {
     // Update lock icon
     if (newState === DOOR_STATES.LOCKED && !this.lockIcon) {
       this.lockIcon = this.scene.add.text(0, 0, '🔒', {
-        fontSize: '20px',
+        fontSize: '24px',
         align: 'center',
       });
       this.lockIcon.setOrigin(0.5);

@@ -59,11 +59,11 @@ export class Furniture extends Phaser.GameObjects.Sprite {
       desk: 'desk',
       table: 'conference-table',
       chair: 'chair',
-      bookshelf: 'cabinet',
+      bookshelf: 'bookshelf',
       plant: 'plant',
-      computer: 'desk', // Use desk texture (has computer on it)
+      computer: 'monitor',
       cabinet: 'cabinet',
-      sofa: 'chair', // Placeholder - use chair for now
+      sofa: 'sofa',
       'filing-cabinet': 'filing-cabinet',
     };
 
