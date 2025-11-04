@@ -167,20 +167,27 @@ export class MainScene extends Phaser.Scene {
       }
     }
 
-    // Create world bounds
-    this.physics.world.setBounds(
-      0,
-      0,
-      GAME_CONFIG.MAP_WIDTH * GAME_CONFIG.TILE_SIZE,
-      GAME_CONFIG.MAP_HEIGHT * GAME_CONFIG.TILE_SIZE
-    );
-
     // Check if WorkAdventure tilemap loaded successfully
     this.useTilemap = this.cache.tilemap.exists('office-map');
+
+    // Create world bounds (use tilemap dimensions if available)
+    if (this.useTilemap) {
+      // Will set bounds after tilemap is created
+      console.log('⏳ World bounds will be set from tilemap dimensions');
+    } else {
+      // Fallback to config dimensions
+      this.physics.world.setBounds(
+        0,
+        0,
+        GAME_CONFIG.MAP_WIDTH * GAME_CONFIG.TILE_SIZE,
+        GAME_CONFIG.MAP_HEIGHT * GAME_CONFIG.TILE_SIZE
+      );
+    }
 
     if (this.useTilemap) {
       console.log('✨ Using professional WorkAdventure tilemap');
       this.createWorldFromTilemap();
+      // DON'T create zones - tilemap has its own zones without colorful overlays
     } else {
       console.log('🎨 Using procedural graphics (download WorkAdventure starter kit for better quality)');
       // Create ground
@@ -209,20 +216,26 @@ export class MainScene extends Phaser.Scene {
       right: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     };
 
-    // Add camera controls
-    this.cameras.main.setBounds(
-      0,
-      0,
-      GAME_CONFIG.MAP_WIDTH * GAME_CONFIG.TILE_SIZE,
-      GAME_CONFIG.MAP_HEIGHT * GAME_CONFIG.TILE_SIZE
-    );
-
-    // Initial camera setup - zoom out and center
-    this.cameras.main.setZoom(0.6);
-    this.cameras.main.centerOn(
-      (GAME_CONFIG.MAP_WIDTH * GAME_CONFIG.TILE_SIZE) / 2,
-      (GAME_CONFIG.MAP_HEIGHT * GAME_CONFIG.TILE_SIZE) / 2
-    );
+    // Add camera controls (use tilemap dimensions if available)
+    if (this.useTilemap && this.tilemap) {
+      this.cameras.main.setBounds(0, 0, this.tilemap.widthInPixels, this.tilemap.heightInPixels);
+      // Zoom in closer for smaller tilemap (1.2x instead of 0.6x)
+      this.cameras.main.setZoom(1.2);
+      this.cameras.main.centerOn(this.tilemap.widthInPixels / 2, this.tilemap.heightInPixels / 2);
+    } else {
+      this.cameras.main.setBounds(
+        0,
+        0,
+        GAME_CONFIG.MAP_WIDTH * GAME_CONFIG.TILE_SIZE,
+        GAME_CONFIG.MAP_HEIGHT * GAME_CONFIG.TILE_SIZE
+      );
+      // Initial camera setup - zoom out and center
+      this.cameras.main.setZoom(0.6);
+      this.cameras.main.centerOn(
+        (GAME_CONFIG.MAP_WIDTH * GAME_CONFIG.TILE_SIZE) / 2,
+        (GAME_CONFIG.MAP_HEIGHT * GAME_CONFIG.TILE_SIZE) / 2
+      );
+    }
 
     // Setup camera pan and zoom controls
     this.setupCameraControls();
@@ -449,6 +462,12 @@ export class MainScene extends Phaser.Scene {
   }
 
   private createRoomZones() {
+    // Skip zone rectangles when using tilemap - tilemap has its own zones
+    if (this.useTilemap) {
+      console.log('✅ Using tilemap zones (no overlay rectangles)');
+      return;
+    }
+
     const tile = GAME_CONFIG.TILE_SIZE;
     const rooms = [
       // Meeting rooms with glass walls
@@ -793,6 +812,10 @@ export class MainScene extends Phaser.Scene {
 
       console.log('✨ WorkAdventure tilemap world created successfully!');
 
+      // Set physics world bounds from tilemap dimensions
+      this.physics.world.setBounds(0, 0, this.tilemap.widthInPixels, this.tilemap.heightInPixels);
+      console.log(`🌍 Physics world bounds set: ${this.tilemap.widthInPixels}x${this.tilemap.heightInPixels}px`);
+
     } catch (error) {
       console.error('❌ Error loading tilemap:', error);
       this.fallbackToProcedural();
@@ -909,9 +932,15 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    // Spawn player at center of map
-    const spawnX = (GAME_CONFIG.MAP_WIDTH * GAME_CONFIG.TILE_SIZE) / 2;
-    const spawnY = (GAME_CONFIG.MAP_HEIGHT * GAME_CONFIG.TILE_SIZE) / 2;
+    // Spawn player at center of map (use tilemap dimensions if available)
+    let spawnX, spawnY;
+    if (this.useTilemap && this.tilemap) {
+      spawnX = this.tilemap.widthInPixels / 2;
+      spawnY = this.tilemap.heightInPixels / 2;
+    } else {
+      spawnX = (GAME_CONFIG.MAP_WIDTH * GAME_CONFIG.TILE_SIZE) / 2;
+      spawnY = (GAME_CONFIG.MAP_HEIGHT * GAME_CONFIG.TILE_SIZE) / 2;
+    }
 
     this.localPlayer = new Player(
       this,
