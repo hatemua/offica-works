@@ -47,16 +47,33 @@ export class MainScene extends Phaser.Scene {
     avatar: string;
   };
 
+  // Tilemap support (WorkAdventure assets)
+  private useTilemap: boolean = false;
+  private tilemap?: Phaser.Tilemaps.Tilemap;
+
   constructor() {
     super({ key: 'MainScene' });
   }
 
   preload() {
-    // NOTE: Avatar sprites are generated programmatically in create()
-    // Generate enhanced graphics (furniture, tiles, decorations)
+    console.log('🎮 Preloading assets...');
+
+    // Try to load WorkAdventure tilemap (professional mode)
+    this.load.on('loaderror', (file: any) => {
+      console.warn(`⚠️ Asset not found: ${file.key} - will use procedural graphics as fallback`);
+    });
+
+    // Load WorkAdventure tilemap and tilesets
+    this.load.tilemapTiledJSON('office-map', '/assets/maps/office.json');
+
+    // Load WorkAdventure tilesets (referenced in the tilemap)
+    // Note: The tilemap has relative paths like "tilesets/WA_*.png"
+    // Phaser will look for these relative to the map's location
+
+    // Always generate procedural graphics as fallback
     const graphicsGen = new GraphicsGenerator(this, GAME_CONFIG.TILE_SIZE);
     graphicsGen.generateAll();
-    console.log('✅ Enhanced graphics loaded');
+    console.log('✅ Assets preloaded (tilemap + procedural fallback)');
   }
 
   private createPixelArtAvatar(key: string) {
@@ -140,6 +157,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   create() {
+    console.log('🏗️ Creating game world...');
+
     // Create pixel art avatars programmatically
     for (let i = 1; i <= 6; i++) {
       const key = `avatar${i}`;
@@ -156,20 +175,29 @@ export class MainScene extends Phaser.Scene {
       GAME_CONFIG.MAP_HEIGHT * GAME_CONFIG.TILE_SIZE
     );
 
-    // Create ground
-    this.createGround();
+    // Check if WorkAdventure tilemap loaded successfully
+    this.useTilemap = this.cache.tilemap.exists('office-map');
 
-    // Create walls
-    this.createWalls();
+    if (this.useTilemap) {
+      console.log('✨ Using professional WorkAdventure tilemap');
+      this.createWorldFromTilemap();
+    } else {
+      console.log('🎨 Using procedural graphics (download WorkAdventure starter kit for better quality)');
+      // Create ground
+      this.createGround();
 
-    // Create room zones
-    this.createRoomZones();
+      // Create walls
+      this.createWalls();
 
-    // Create furniture
-    this.createFurniture();
+      // Create room zones
+      this.createRoomZones();
 
-    // Create doors
-    this.createDoors();
+      // Create furniture
+      this.createFurniture();
+
+      // Create doors
+      this.createDoors();
+    }
 
     // Setup input
     this.cursors = this.input.keyboard?.createCursorKeys();
@@ -697,6 +725,93 @@ export class MainScene extends Phaser.Scene {
     console.log(`✅ Created ${doorData.length} doors`);
   }
 
+  /**
+   * Create world from WorkAdventure tilemap (professional graphics)
+   */
+  private createWorldFromTilemap() {
+    try {
+      // Create tilemap from loaded JSON
+      this.tilemap = this.make.tilemap({ key: 'office-map' });
+
+      if (!this.tilemap) {
+        console.error('❌ Failed to create tilemap');
+        this.fallbackToProcedural();
+        return;
+      }
+
+      console.log(`📐 Tilemap loaded: ${this.tilemap.width}x${this.tilemap.height} tiles`);
+
+      // The WorkAdventure map uses embedded tilesets with relative image paths
+      // Phaser will automatically load these images relative to the map's location
+      // Images are in: /assets/tilesets/WA_*.png
+      // Map is at: /assets/maps/office.json
+      // So relative path "../tilesets/WA_*.png" should work
+
+      // Get all tilesets from the map
+      const tilesets: Phaser.Tilemaps.Tileset[] = [];
+
+      // WorkAdventure maps have multiple tilesets embedded
+      for (let i = 0; i < this.tilemap.tilesets.length; i++) {
+        const tilesetData = this.tilemap.tilesets[i];
+        const tileset = this.tilemap.addTilesetImage(tilesetData.name);
+
+        if (tileset) {
+          tilesets.push(tileset);
+          console.log(`✅ Loaded tileset: ${tilesetData.name}`);
+        } else {
+          console.warn(`⚠️ Could not load tileset: ${tilesetData.name}`);
+        }
+      }
+
+      if (tilesets.length === 0) {
+        console.error('❌ No tilesets loaded');
+        this.fallbackToProcedural();
+        return;
+      }
+
+      // Create all tile layers from the map
+      const layerNames = this.tilemap.layers.map(l => l.name);
+      console.log(`📋 Available layers: ${layerNames.join(', ')}`);
+
+      // Create layers in order (they're already ordered correctly in the tilemap)
+      this.tilemap.layers.forEach((layerData) => {
+        // Check if it's a tile layer (not object layer)
+        const layer = this.tilemap!.createLayer(layerData.name, tilesets, 0, 0);
+
+        if (layer) {
+          console.log(`✅ Created layer: ${layerData.name}`);
+
+          // Setup collision for layers named "collisions" or "walls"
+          if (layerData.name.toLowerCase().includes('collision') ||
+              layerData.name.toLowerCase().includes('wall')) {
+            // Set collision for all non-zero tiles
+            layer.setCollisionByExclusion([-1, 0]);
+            console.log(`🚧 Collision enabled for layer: ${layerData.name}`);
+          }
+        }
+      });
+
+      console.log('✨ WorkAdventure tilemap world created successfully!');
+
+    } catch (error) {
+      console.error('❌ Error loading tilemap:', error);
+      this.fallbackToProcedural();
+    }
+  }
+
+  /**
+   * Fallback to procedural graphics if tilemap fails
+   */
+  private fallbackToProcedural() {
+    console.log('🔄 Falling back to procedural graphics...');
+    this.useTilemap = false;
+    this.createGround();
+    this.createWalls();
+    this.createRoomZones();
+    this.createFurniture();
+    this.createDoors();
+  }
+
   private setupSocketListeners() {
     const socket = socketService.getSocket();
     if (!socket) return;
@@ -807,19 +922,34 @@ export class MainScene extends Phaser.Scene {
       avatar
     );
 
-    // Setup collisions with furniture
+    // Setup collisions with furniture (procedural mode)
     this.furniture.forEach(furn => {
       if (this.localPlayer) {
         this.physics.add.collider(this.localPlayer, furn);
       }
     });
 
-    // Setup collisions with doors
+    // Setup collisions with doors (procedural mode)
     this.doors.forEach(door => {
       if (this.localPlayer) {
         this.physics.add.collider(this.localPlayer, door);
       }
     });
+
+    // Setup collisions with tilemap layers (tilemap mode)
+    if (this.useTilemap && this.tilemap) {
+      this.tilemap.layers.forEach((layerData) => {
+        if (layerData.tilemapLayer) {
+          const layerName = layerData.name.toLowerCase();
+
+          // Add collision for layers with "collision" or "wall" in the name
+          if (layerName.includes('collision') || layerName.includes('wall')) {
+            this.physics.add.collider(this.localPlayer!, layerData.tilemapLayer);
+            console.log(`🚧 Player collision added with tilemap layer: ${layerData.name}`);
+          }
+        }
+      });
+    }
 
     // Enable camera follow
     this.cameraFollowEnabled = true;
