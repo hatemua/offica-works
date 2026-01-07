@@ -46,6 +46,7 @@ export class MainScene extends Phaser.Scene {
     username: string;
     avatar: string;
   };
+  private pendingRemotePlayers: PlayerData[] = [];
 
   // Tilemap support (WorkAdventure assets)
   private useTilemap: boolean = false;
@@ -66,9 +67,18 @@ export class MainScene extends Phaser.Scene {
     // Load WorkAdventure tilemap and tilesets
     this.load.tilemapTiledJSON('office-map', '/assets/maps/office.json');
 
-    // Load WorkAdventure tilesets (referenced in the tilemap)
-    // Note: The tilemap has relative paths like "tilesets/WA_*.png"
-    // Phaser will look for these relative to the map's location
+    // Load WorkAdventure tileset images explicitly
+    // These must match the names in the tilemap JSON file
+    this.load.image('WA_Special_Zones', '/assets/tilesets/WA_Special_Zones.png');
+    this.load.image('WA_Decoration', '/assets/tilesets/WA_Decoration.png');
+    this.load.image('WA_Miscellaneous', '/assets/tilesets/WA_Miscellaneous.png');
+    this.load.image('WA_Other_Furniture', '/assets/tilesets/WA_Other_Furniture.png');
+    this.load.image('WA_Room_Builder', '/assets/tilesets/WA_Room_Builder.png');
+    this.load.image('WA_Seats', '/assets/tilesets/WA_Seats.png');
+    this.load.image('WA_Tables', '/assets/tilesets/WA_Tables.png');
+    this.load.image('WA_Logo_Long', '/assets/tilesets/WA_Logo_Long.png');
+    this.load.image('WA_Exterior', '/assets/tilesets/WA_Exterior.png');
+    this.load.image('WA_User_Interface', '/assets/tilesets/WA_User_Interface.png');
 
     // Always generate procedural graphics as fallback
     const graphicsGen = new GraphicsGenerator(this, GAME_CONFIG.TILE_SIZE);
@@ -77,95 +87,211 @@ export class MainScene extends Phaser.Scene {
   }
 
   private createPixelArtAvatar(key: string) {
+    console.log(`🎨 Creating avatar texture: ${key}`);
+
     // Create a sprite sheet texture with 4 rows (down, left, right, up) × 3 frames each
     const frameWidth = 32;
     const frameHeight = 32;
     const cols = 3;
     const rows = 4;
 
-    const graphics = this.make.graphics({ x: 0, y: 0 });
+    const graphics = this.make.graphics({ x: 0, y: 0 }, false);
 
-    // Avatar color schemes
+    // Professional avatar color schemes (matching WorkAdventure style)
     const colorSchemes = {
-      avatar1: { body: 0xFF6B6B, hair: 0x8B4513, outline: 0x5C1A1A },
-      avatar2: { body: 0x4ECDC4, hair: 0xFFD700, outline: 0x1A5C5C },
-      avatar3: { body: 0x45B7D1, hair: 0xFF8C00, outline: 0x1A4A5C },
-      avatar4: { body: 0xFFA07A, hair: 0x4B0082, outline: 0x5C2A1A },
-      avatar5: { body: 0x98D8C8, hair: 0xFF1493, outline: 0x1A5C4A },
-      avatar6: { body: 0xF7DC6F, hair: 0x8A2BE2, outline: 0x5C4A1A },
+      avatar1: {
+        skin: 0xFFDBAC,
+        hair: 0x3D2817,
+        shirt: 0x4A90E2,
+        pants: 0x2C3E50,
+        shoes: 0x1A1A1A,
+        outline: 0x000000
+      },
+      avatar2: {
+        skin: 0xF4C2A0,
+        hair: 0xFFD700,
+        shirt: 0xE74C3C,
+        pants: 0x34495E,
+        shoes: 0x2C3E50,
+        outline: 0x000000
+      },
+      avatar3: {
+        skin: 0xD4A57A,
+        hair: 0x8B4513,
+        shirt: 0x27AE60,
+        pants: 0x7F8C8D,
+        shoes: 0x34495E,
+        outline: 0x000000
+      },
+      avatar4: {
+        skin: 0xFFE4C4,
+        hair: 0xFF6B9D,
+        shirt: 0x9B59B6,
+        pants: 0x2C3E50,
+        shoes: 0x1A1A1A,
+        outline: 0x000000
+      },
+      avatar5: {
+        skin: 0xE8B898,
+        hair: 0x000000,
+        shirt: 0xF39C12,
+        pants: 0x16A085,
+        shoes: 0x34495E,
+        outline: 0x000000
+      },
+      avatar6: {
+        skin: 0xFFDBAC,
+        hair: 0x8E44AD,
+        shirt: 0x1ABC9C,
+        pants: 0x95A5A6,
+        shoes: 0x2C3E50,
+        outline: 0x000000
+      },
     };
 
     const colors = colorSchemes[key as keyof typeof colorSchemes] || colorSchemes.avatar1;
+    console.log(`🎨 Using color scheme for ${key}:`, colors);
 
-    // Draw all frames
+    // Draw all frames (4 directions × 3 animation frames)
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
         const x = col * frameWidth;
         const y = row * frameHeight;
+        const direction = row; // 0=down, 1=left, 2=right, 3=up
 
-        // Draw character (simple pixel art person)
-        // Head
-        graphics.fillStyle(colors.body, 1);
-        graphics.fillRect(x + 12, y + 8, 8, 8);
+        // Animation offset for walk cycle
+        const walkOffset = col === 1 ? 0 : (col === 0 ? -1 : 1);
 
-        // Hair
+        // HEAD (round, centered)
+        graphics.fillStyle(colors.skin, 1);
+        graphics.fillRect(x + 11, y + 7, 10, 10); // Head square
+        // Head shadow
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRect(x + 11, y + 14, 10, 3);
+
+        // HAIR (different styles based on direction)
         graphics.fillStyle(colors.hair, 1);
-        graphics.fillRect(x + 12, y + 8, 8, 4);
+        if (direction === 3) { // Up - show back of head
+          graphics.fillRect(x + 10, y + 6, 12, 6);
+        } else {
+          graphics.fillRect(x + 10, y + 6, 12, 5); // Top of hair
+        }
 
-        // Body
-        graphics.fillStyle(colors.body, 1);
-        graphics.fillRect(x + 10, y + 16, 12, 10);
+        // EYES (only visible when not looking up)
+        if (direction !== 3) {
+          graphics.fillStyle(0x000000, 1);
+          if (direction === 1) { // Looking left
+            graphics.fillRect(x + 13, y + 11, 2, 2);
+          } else if (direction === 2) { // Looking right
+            graphics.fillRect(x + 17, y + 11, 2, 2);
+          } else { // Looking down
+            graphics.fillRect(x + 13, y + 11, 2, 2);
+            graphics.fillRect(x + 17, y + 11, 2, 2);
+          }
+        }
 
-        // Legs (slightly offset based on frame for walk animation)
-        const legOffset = col === 1 ? 0 : (col === 0 ? -1 : 1);
-        graphics.fillRect(x + 12 + legOffset, y + 26, 3, 6);
-        graphics.fillRect(x + 17 - legOffset, y + 26, 3, 6);
+        // SHIRT/BODY
+        graphics.fillStyle(colors.shirt, 1);
+        graphics.fillRect(x + 10, y + 17, 12, 7);
+        // Body shading
+        graphics.fillStyle(0x000000, 0.2);
+        graphics.fillRect(x + 10, y + 21, 12, 3);
 
-        // Outline
+        // ARMS (side arms for walking animation)
+        graphics.fillStyle(colors.skin, 1);
+        if (direction === 1 || direction === 2) { // Left/Right - arms visible
+          graphics.fillRect(x + 8 + walkOffset, y + 18, 2, 6);
+          graphics.fillRect(x + 22 - walkOffset, y + 18, 2, 6);
+        }
+
+        // PANTS/LEGS
+        graphics.fillStyle(colors.pants, 1);
+        // Legs with walking animation
+        graphics.fillRect(x + 12 + walkOffset, y + 24, 3, 6);
+        graphics.fillRect(x + 17 - walkOffset, y + 24, 3, 6);
+
+        // SHOES
+        graphics.fillStyle(colors.shoes, 1);
+        graphics.fillRect(x + 12 + walkOffset, y + 29, 3, 2);
+        graphics.fillRect(x + 17 - walkOffset, y + 29, 3, 2);
+
+        // OUTLINE (crisp black outline for pixel art style)
         graphics.lineStyle(1, colors.outline, 1);
-        graphics.strokeRect(x + 12, y + 8, 8, 8); // Head outline
-        graphics.strokeRect(x + 10, y + 16, 12, 10); // Body outline
+        // Head outline
+        graphics.strokeRect(x + 11, y + 7, 10, 10);
+        // Hair outline
+        if (direction === 3) {
+          graphics.strokeRect(x + 10, y + 6, 12, 6);
+        } else {
+          graphics.strokeRect(x + 10, y + 6, 12, 5);
+        }
+        // Body outline
+        graphics.strokeRect(x + 10, y + 17, 12, 7);
+        // Legs outline
+        graphics.strokeRect(x + 12 + walkOffset, y + 24, 3, 6);
+        graphics.strokeRect(x + 17 - walkOffset, y + 24, 3, 6);
       }
     }
 
     // Generate texture
-    graphics.generateTexture(key, frameWidth * cols, frameHeight * rows);
-    graphics.destroy();
+    const textureWidth = frameWidth * cols;
+    const textureHeight = frameHeight * rows;
+    console.log(`🎨 Generating texture for ${key} (${textureWidth}x${textureHeight})...`);
 
-    // Configure as sprite sheet with individual frames
-    const texture = this.textures.get(key);
+    try {
+      graphics.generateTexture(key, textureWidth, textureHeight);
+      graphics.destroy();
 
-    // Add all frames to the sprite sheet
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        const frameIndex = row * cols + col;
-        texture.add(
-          frameIndex,              // Frame name/number (0-11)
-          0,                       // Source image index
-          col * frameWidth,        // x position in source
-          row * frameHeight,       // y position in source
-          frameWidth,              // frame width
-          frameHeight              // frame height
-        );
+      // Verify texture was created
+      if (!this.textures.exists(key)) {
+        console.error(`❌ FAILED to create texture: ${key}`);
+        return;
       }
+
+      // Configure as sprite sheet with individual frames
+      const texture = this.textures.get(key);
+      const source = texture.source[0];
+      console.log(`📦 Texture ${key} created: ${source.width}x${source.height}px`);
+
+      // Add all frames to the sprite sheet
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const frameIndex = row * cols + col;
+          texture.add(
+            frameIndex,              // Frame name/number (0-11)
+            0,                       // Source image index
+            col * frameWidth,        // x position in source
+            row * frameHeight,       // y position in source
+            frameWidth,              // frame width
+            frameHeight              // frame height
+          );
+        }
+      }
+
+      // Set pixel-perfect rendering
+      texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+
+      console.log(`✅ Created sprite sheet for ${key} with ${rows * cols} frames (total frames: ${texture.frameTotal})`);
+    } catch (error) {
+      console.error(`❌ Error creating texture ${key}:`, error);
     }
-
-    // Set pixel-perfect rendering
-    texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
-
-    console.log(`✅ Created sprite sheet for ${key} with ${rows * cols} frames`);
   }
 
   create() {
     console.log('🏗️ Creating game world...');
 
     // Create pixel art avatars programmatically
+    console.log('🎨 Creating avatar sprite sheets...');
     for (let i = 1; i <= 6; i++) {
       const key = `avatar${i}`;
       if (!this.textures.exists(key)) {
         this.createPixelArtAvatar(key);
+        console.log(`✅ Avatar texture created: ${key}, exists: ${this.textures.exists(key)}`);
+      } else {
+        console.log(`⚠️ Avatar texture already exists: ${key}`);
       }
     }
+    console.log('✅ All avatar textures ready!');
 
     // Check if WorkAdventure tilemap loaded successfully
     this.useTilemap = this.cache.tilemap.exists('office-map');
@@ -216,20 +342,15 @@ export class MainScene extends Phaser.Scene {
       right: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     };
 
-    // Add camera controls (use tilemap dimensions if available)
-    if (this.useTilemap && this.tilemap) {
-      this.cameras.main.setBounds(0, 0, this.tilemap.widthInPixels, this.tilemap.heightInPixels);
-      // Zoom in closer for smaller tilemap (1.2x instead of 0.6x)
-      this.cameras.main.setZoom(1.2);
-      this.cameras.main.centerOn(this.tilemap.widthInPixels / 2, this.tilemap.heightInPixels / 2);
-    } else {
+    // Camera will be setup after world creation (see createWorldFromTilemap or after procedural creation)
+    if (!this.useTilemap) {
+      // Setup camera for procedural mode immediately
       this.cameras.main.setBounds(
         0,
         0,
         GAME_CONFIG.MAP_WIDTH * GAME_CONFIG.TILE_SIZE,
         GAME_CONFIG.MAP_HEIGHT * GAME_CONFIG.TILE_SIZE
       );
-      // Initial camera setup - zoom out and center
       this.cameras.main.setZoom(0.6);
       this.cameras.main.centerOn(
         (GAME_CONFIG.MAP_WIDTH * GAME_CONFIG.TILE_SIZE) / 2,
@@ -240,6 +361,12 @@ export class MainScene extends Phaser.Scene {
     // Setup camera pan and zoom controls
     this.setupCameraControls();
 
+    // CRITICAL: Setup socket listeners BEFORE scene is marked ready
+    // This ensures we catch ALL socket events (especially PLAYERS_LIST)
+    // that arrive while the scene is still initializing
+    console.log('📡 Setting up socket listeners (before scene ready)...');
+    this.setupSocketListeners();
+
     // IMPORTANT: Wait for next frame to ensure scene systems are fully initialized
     // This prevents the "Cannot read properties of null (reading 'queueDepthSort')" error
     this.time.delayedCall(0, () => {
@@ -247,16 +374,48 @@ export class MainScene extends Phaser.Scene {
       this.isSceneReady = true;
       console.log('✅ Scene fully initialized and ready');
 
-      // Setup socket listeners NOW (after scene is ready)
-      this.setupSocketListeners();
-
       // Process pending player creation if any
       if (this.pendingPlayerCreation) {
         const { playerId, username, avatar } = this.pendingPlayerCreation;
         this.createLocalPlayer(playerId, username, avatar);
         this.pendingPlayerCreation = undefined;
       }
+
+      // SMART PLAYER CREATION: Try to create player immediately if socket is ready
+      this.tryCreatePlayerFromSocketAndStore();
+
+      // Process any pending remote players that were queued before scene was ready
+      this.processPendingRemotePlayers();
+
+      // FALLBACK: If player still not created after 2 seconds, force creation
+      this.time.delayedCall(2000, () => {
+        if (!this.localPlayer) {
+          console.warn('⚠️ FALLBACK: Player not created after 2s, forcing creation...');
+          this.tryCreatePlayerFromSocketAndStore();
+        }
+      });
     });
+  }
+
+  /**
+   * Process any remote players that were queued before the scene was ready
+   */
+  private processPendingRemotePlayers() {
+    if (this.pendingRemotePlayers.length === 0) {
+      return;
+    }
+
+    console.log(`📦 Processing ${this.pendingRemotePlayers.length} pending remote players...`);
+
+    // Process each pending remote player
+    this.pendingRemotePlayers.forEach((playerData) => {
+      console.log(`   → Adding queued player: ${playerData.username}`);
+      this.addRemotePlayer(playerData);
+    });
+
+    // Clear the queue
+    this.pendingRemotePlayers = [];
+    console.log(`✅ All pending remote players processed`);
   }
 
   private createGround() {
@@ -792,17 +951,33 @@ export class MainScene extends Phaser.Scene {
       const layerNames = this.tilemap.layers.map(l => l.name);
       console.log(`📋 Available layers: ${layerNames.join(', ')}`);
 
-      // Create layers in order (they're already ordered correctly in the tilemap)
+      // Create layers with proper depth sorting
+      // Layers named "above" should render ABOVE players (depth 2000+)
+      // All other layers should render BELOW players (depth 0-999)
+      let belowPlayerDepth = 0;
+      let abovePlayerDepth = 2000;
+
       this.tilemap.layers.forEach((layerData) => {
         // Check if it's a tile layer (not object layer)
         const layer = this.tilemap!.createLayer(layerData.name, tilesets, 0, 0);
 
         if (layer) {
-          console.log(`✅ Created layer: ${layerData.name}`);
+          const layerName = layerData.name.toLowerCase();
+
+          // Layers with "above" in name render above players
+          if (layerName.includes('above')) {
+            layer.setDepth(abovePlayerDepth);
+            console.log(`✅ Created layer: ${layerData.name} (depth: ${abovePlayerDepth}) [ABOVE PLAYER]`);
+            abovePlayerDepth += 10;
+          } else {
+            // All other layers render below players
+            layer.setDepth(belowPlayerDepth);
+            console.log(`✅ Created layer: ${layerData.name} (depth: ${belowPlayerDepth}) [BELOW PLAYER]`);
+            belowPlayerDepth += 10;
+          }
 
           // Setup collision for layers named "collisions" or "walls"
-          if (layerData.name.toLowerCase().includes('collision') ||
-              layerData.name.toLowerCase().includes('wall')) {
+          if (layerName.includes('collision') || layerName.includes('wall')) {
             // Set collision for all non-zero tiles
             layer.setCollisionByExclusion([-1, 0]);
             console.log(`🚧 Collision enabled for layer: ${layerData.name}`);
@@ -815,6 +990,12 @@ export class MainScene extends Phaser.Scene {
       // Set physics world bounds from tilemap dimensions
       this.physics.world.setBounds(0, 0, this.tilemap.widthInPixels, this.tilemap.heightInPixels);
       console.log(`🌍 Physics world bounds set: ${this.tilemap.widthInPixels}x${this.tilemap.heightInPixels}px`);
+
+      // Setup camera for tilemap (NOW that tilemap exists!)
+      this.cameras.main.setBounds(0, 0, this.tilemap.widthInPixels, this.tilemap.heightInPixels);
+      this.cameras.main.setZoom(0.9); // Good balance for viewing full office
+      this.cameras.main.centerOn(this.tilemap.widthInPixels / 2, this.tilemap.heightInPixels / 2);
+      console.log(`📷 Camera setup: zoom=0.9, bounds=${this.tilemap.widthInPixels}x${this.tilemap.heightInPixels}px`);
 
     } catch (error) {
       console.error('❌ Error loading tilemap:', error);
@@ -837,15 +1018,22 @@ export class MainScene extends Phaser.Scene {
 
   private setupSocketListeners() {
     const socket = socketService.getSocket();
-    if (!socket) return;
+    if (!socket) {
+      console.warn('⚠️ Socket not available in setupSocketListeners');
+      return;
+    }
+
+    console.log('📡 Setting up socket event listeners...');
 
     // Player joined
     socket.on(SOCKET_EVENTS.PLAYER_JOINED, (player: PlayerData) => {
+      console.log('👥 Remote player joined:', player.username);
       this.addRemotePlayer(player);
     });
 
     // Player left
     socket.on(SOCKET_EVENTS.PLAYER_LEFT, (playerId: string) => {
+      console.log('👋 Remote player left:', playerId);
       this.removeRemotePlayer(playerId);
     });
 
@@ -856,8 +1044,31 @@ export class MainScene extends Phaser.Scene {
 
     // Initial players list
     socket.on(SOCKET_EVENTS.PLAYERS_LIST, (players: Record<string, PlayerData>) => {
+      console.log(`📋 Received PLAYERS_LIST: ${Object.keys(players).length} players`);
+      console.log(`📋 Socket ID: ${socket.id}`);
+      console.log(`📋 Players:`, Object.keys(players));
+
+      // FALLBACK: Create local player if it doesn't exist yet and we're in the list
+      // This handles the case where AUTHENTICATED event might not be received
+      if (!this.localPlayer && socket.id && players[socket.id]) {
+        const localPlayerData = players[socket.id];
+        console.log(`🎮 FALLBACK: Creating local player from PLAYERS_LIST`, localPlayerData);
+
+        if (this.isSceneReady) {
+          this.createLocalPlayer(socket.id, localPlayerData.username, localPlayerData.avatar);
+        } else {
+          this.pendingPlayerCreation = {
+            playerId: socket.id,
+            username: localPlayerData.username,
+            avatar: localPlayerData.avatar,
+          };
+        }
+      }
+
+      // Add remote players
       Object.entries(players).forEach(([id, player]) => {
         if (id !== socket.id) {
+          console.log(`👥 Adding remote player: ${player.username} (${id})`);
           this.addRemotePlayer(player);
         }
       });
@@ -865,20 +1076,26 @@ export class MainScene extends Phaser.Scene {
 
     // Authenticated - create local player
     socket.on(SOCKET_EVENTS.AUTHENTICATED, () => {
+      console.log('🔐 AUTHENTICATED event received!');
       const store = useGameStore.getState();
+      console.log('📦 User from store:', store.user);
+
       if (store.user) {
         // Queue player creation if scene isn't ready yet
         if (!this.isSceneReady) {
-          console.log('Scene not ready, queueing player creation');
+          console.log('⏳ Scene not ready, queueing player creation');
           this.pendingPlayerCreation = {
             playerId: socket.id!,
             username: store.user.username,
             avatar: store.user.avatar,
           };
         } else {
+          console.log('✅ Scene ready, creating player immediately');
           this.createLocalPlayer(socket.id!, store.user.username, store.user.avatar);
         }
         store.setCurrentPlayerId(socket.id!);
+      } else {
+        console.error('❌ No user in store after authentication!');
       }
     });
 
@@ -919,16 +1136,62 @@ export class MainScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Smart player creation: Try to create player from socket connection and user store
+   * This method can be called anytime after scene is ready
+   */
+  private tryCreatePlayerFromSocketAndStore() {
+    console.log('🔍 Trying to create player from socket and store...');
+
+    // Don't create if already exists
+    if (this.localPlayer) {
+      console.log('⏭️ Player already exists, skipping');
+      return;
+    }
+
+    // Get socket
+    const socket = socketService.getSocket();
+    if (!socket || !socket.connected || !socket.id) {
+      console.log('⏭️ Socket not ready (connected:', socket?.connected, ', id:', socket?.id, ')');
+      return;
+    }
+
+    // Get user from store
+    const store = useGameStore.getState();
+    if (!store.user) {
+      console.log('⏭️ No user in store yet');
+      return;
+    }
+
+    // All conditions met - create player!
+    console.log('✅ All conditions met for player creation:');
+    console.log(`   Socket ID: ${socket.id}`);
+    console.log(`   User: ${store.user.username}`);
+    console.log(`   Avatar: ${store.user.avatar}`);
+
+    this.createLocalPlayer(socket.id, store.user.username, store.user.avatar);
+    store.setCurrentPlayerId(socket.id);
+  }
+
   private createLocalPlayer(playerId: string, username: string, avatar: string) {
+    console.log(`🎮 Creating local player - ID: ${playerId}, username: ${username}, avatar: ${avatar}`);
+
     // Safety check: ensure scene is ready
     if (!this.isSceneReady) {
-      console.warn('Attempted to create player before scene ready');
+      console.warn('❌ Attempted to create player before scene ready - queueing creation');
       return;
     }
 
     // Prevent duplicate player creation
     if (this.localPlayer) {
-      console.warn('Local player already exists');
+      console.warn('⚠️ Local player already exists');
+      return;
+    }
+
+    // Verify avatar texture exists
+    if (!this.textures.exists(avatar)) {
+      console.error(`❌ Cannot create player - avatar texture "${avatar}" does not exist!`);
+      console.log(`📋 Available textures:`, this.textures.getTextureKeys().filter(k => k.startsWith('avatar')));
       return;
     }
 
@@ -941,6 +1204,8 @@ export class MainScene extends Phaser.Scene {
       spawnX = (GAME_CONFIG.MAP_WIDTH * GAME_CONFIG.TILE_SIZE) / 2;
       spawnY = (GAME_CONFIG.MAP_HEIGHT * GAME_CONFIG.TILE_SIZE) / 2;
     }
+
+    console.log(`📍 Spawning player at (${spawnX}, ${spawnY})`);
 
     this.localPlayer = new Player(
       this,
@@ -985,7 +1250,13 @@ export class MainScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.localPlayer, true, 0.1, 0.1);
     this.cameras.main.setZoom(1); // Zoom in when player appears
 
-    console.log(`✅ Player created at (${spawnX}, ${spawnY})`);
+    console.log(`✅ LOCAL PLAYER CREATED AND READY!`);
+    console.log(`   Position: (${spawnX}, ${spawnY})`);
+    console.log(`   Visible: ${this.localPlayer.visible}`);
+    console.log(`   Alpha: ${this.localPlayer.alpha}`);
+    console.log(`   Depth: ${this.localPlayer.depth}`);
+    console.log(`   Texture: ${this.localPlayer.texture.key}`);
+    console.log(`   Frame: ${this.localPlayer.frame.name}`);
   }
 
   private setupCameraControls() {
@@ -1063,7 +1334,33 @@ export class MainScene extends Phaser.Scene {
   }
 
   private addRemotePlayer(playerData: PlayerData) {
-    if (this.remotePlayers.has(playerData.id)) return;
+    console.log(`👥 addRemotePlayer called for: ${playerData.username} (${playerData.id})`);
+    console.log(`   Position: (${playerData.position.x}, ${playerData.position.y})`);
+    console.log(`   Avatar: ${playerData.avatar}`);
+    console.log(`   Scene ready: ${this.isSceneReady}`);
+    console.log(`   Current remote players count: ${this.remotePlayers.size}`);
+
+    // Check if player already exists
+    if (this.remotePlayers.has(playerData.id)) {
+      console.warn(`⚠️ Remote player ${playerData.username} already exists, skipping`);
+      return;
+    }
+
+    // Check if scene is ready - if not, queue the player
+    if (!this.isSceneReady) {
+      console.warn(`⏳ Scene not ready, queueing remote player: ${playerData.username}`);
+      this.pendingRemotePlayers.push(playerData);
+      return;
+    }
+
+    // Check if avatar texture exists
+    if (!this.textures.exists(playerData.avatar)) {
+      console.error(`❌ Cannot add remote player ${playerData.username} - avatar texture "${playerData.avatar}" does not exist!`);
+      console.log(`📋 Available avatars:`, this.textures.getTextureKeys().filter(k => k.startsWith('avatar')));
+      return;
+    }
+
+    console.log(`✅ Creating remote player sprite for ${playerData.username}...`);
 
     const player = new Player(
       this,
@@ -1076,6 +1373,10 @@ export class MainScene extends Phaser.Scene {
 
     this.remotePlayers.set(playerData.id, player);
     useGameStore.getState().addPlayer(playerData);
+
+    console.log(`✅ Remote player ${playerData.username} added successfully!`);
+    console.log(`   Total remote players: ${this.remotePlayers.size}`);
+    console.log(`   Player visible: ${player.visible}, depth: ${player.depth}, alpha: ${player.alpha}`);
   }
 
   private removeRemotePlayer(playerId: string) {

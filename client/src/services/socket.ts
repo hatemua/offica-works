@@ -18,8 +18,15 @@ class SocketService {
       transports: ['websocket'],
     });
 
+    // Log ALL incoming events for debugging
+    this.socket.onAny((eventName, ...args) => {
+      console.log(`📨 Socket event received: "${eventName}"`, args);
+    });
+
     this.socket.on('connect', () => {
       console.log('✅ Connected to server');
+      console.log(`🔌 Socket ID: ${this.socket?.id}`);
+      console.log(`🔌 Socket connected: ${this.socket?.connected}`);
     });
 
     this.socket.on('disconnect', () => {
@@ -27,7 +34,7 @@ class SocketService {
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('Connection error:', error.message);
+      console.error('❌ Connection error:', error.message);
     });
 
     return this.socket;

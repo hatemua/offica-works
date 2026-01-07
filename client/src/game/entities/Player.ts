@@ -15,17 +15,34 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     username: string,
     avatar: string
   ) {
+    // Debug: Check if texture exists before creating sprite
+    console.log(`🔍 Player constructor - avatar: ${avatar}, texture exists: ${scene.textures.exists(avatar)}`);
+
+    if (!scene.textures.exists(avatar)) {
+      console.error(`❌ CRITICAL ERROR: Avatar texture "${avatar}" does NOT exist!`);
+      console.log(`📋 Available textures:`, scene.textures.getTextureKeys().slice(0, 20));
+    }
+
     super(scene, x, y, avatar);
 
     this.playerId = playerId;
     this.username = username;
 
+    // Debug sprite state
+    console.log(`🔍 Sprite created: visible=${this.visible}, alpha=${this.alpha}, texture=${this.texture.key}, frame=${this.frame.name}`);
+
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
-    // Setup player properties
-    this.setScale(1);
-    this.setDepth(10);
+    // Setup player properties - ENSURE VISIBILITY
+    this.setScale(1.2); // Slightly larger for better visibility
+    this.setDepth(1000); // Render above all tilemap layers (which are depth 0-100)
+    this.setVisible(true); // Explicitly set visible
+    this.setAlpha(1); // Explicitly set full opacity
+    this.setActive(true); // Ensure sprite is active
+
+    // Debug after setup
+    console.log(`🔍 After setup: scale=${this.scale}, depth=${this.depth}, x=${this.x}, y=${this.y}, visible=${this.visible}, alpha=${this.alpha}`);
 
     // Add collision body
     if (this.body) {
@@ -36,22 +53,44 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     // Add name text
-    this.nameText = scene.add.text(x, y - 30, username, {
-      fontSize: '12px',
+    this.nameText = scene.add.text(x, y - 35, username, {
+      fontSize: '13px',
       color: '#ffffff',
-      backgroundColor: '#00000080',
-      padding: { x: 4, y: 2 },
+      backgroundColor: '#00000090',
+      padding: { x: 5, y: 3 },
     });
     this.nameText.setOrigin(0.5);
-    this.nameText.setDepth(11);
+    this.nameText.setDepth(1001); // Above player
+
+    console.log(`👤 Player fully created: ${username} with avatar: ${avatar} at (${x}, ${y}), depth: ${this.depth}`);
 
     // Create animations if they don't exist
     this.createAnimations();
+
+    // Set initial frame and play idle animation
+    console.log(`🎬 Setting initial frame and playing idle animation for ${avatar}...`);
+
+    try {
+      // Frame 1 is idle facing down (middle frame of first row)
+      this.setFrame(1);
+
+      // Play idle animation
+      if (scene.anims.exists(`${avatar}-idle-down`)) {
+        this.play(`${avatar}-idle-down`, true);
+        console.log(`✅ Playing animation: ${this.anims.currentAnim?.key}, frame: ${this.frame.name}`);
+      } else {
+        console.warn(`⚠️ Animation ${avatar}-idle-down not found, using frame 1`);
+      }
+    } catch (error) {
+      console.error(`❌ Error setting initial animation:`, error);
+    }
   }
 
   private createAnimations() {
     const scene = this.scene;
     const avatar = this.texture.key;
+
+    console.log(`🎬 Creating animations for avatar: ${avatar}`);
 
     // Only create if not already created
     if (!scene.anims.exists(`${avatar}-walk-down`)) {

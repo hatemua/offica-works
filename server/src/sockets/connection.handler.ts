@@ -44,10 +44,13 @@ export function setupSocketHandlers(io: Server) {
     );
 
     // Send authenticated event
+    console.log(`🔐 Sending AUTHENTICATED event to ${socket.data.username}`);
     socket.emit(SOCKET_EVENTS.AUTHENTICATED, { userId: socket.data.userId });
 
     // Send current game state to new player
-    socket.emit(SOCKET_EVENTS.PLAYERS_LIST, gameService.getAllPlayers());
+    const allPlayers = gameService.getAllPlayers();
+    console.log(`📋 Sending PLAYERS_LIST with ${Object.keys(allPlayers).length} players`);
+    socket.emit(SOCKET_EVENTS.PLAYERS_LIST, allPlayers);
 
     // Notify all other players
     socket.broadcast.emit(SOCKET_EVENTS.PLAYER_JOINED, player);
