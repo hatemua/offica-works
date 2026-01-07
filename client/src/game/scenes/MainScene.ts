@@ -52,6 +52,10 @@ export class MainScene extends Phaser.Scene {
   private useTilemap: boolean = false;
   private tilemap?: Phaser.Tilemaps.Tilemap;
 
+  // Logging throttle for proximity updates
+  private lastProximityLogTime: number = 0;
+  private proximityLogThrottle: number = 2000; // Log every 2 seconds max
+
   constructor() {
     super({ key: 'MainScene' });
   }
@@ -1025,28 +1029,55 @@ export class MainScene extends Phaser.Scene {
 
     console.log('📡 Setting up socket event listeners...');
 
-    // Player joined
-    socket.on(SOCKET_EVENTS.PLAYER_JOINED, (player: PlayerData) => {
+    // Player joined - USING LITERAL STRING TO BYPASS TYPESCRIPT
+    console.log('🎯 Registering player:joined handler...');
+    socket.on('player:joined', (player: PlayerData) => {
       console.log('👥 Remote player joined:', player.username);
       this.addRemotePlayer(player);
     });
 
-    // Player left
-    socket.on(SOCKET_EVENTS.PLAYER_LEFT, (playerId: string) => {
+    // Player left - USING LITERAL STRING
+    console.log('🎯 Registering player:left handler...');
+    socket.on('player:left', (playerId: string) => {
       console.log('👋 Remote player left:', playerId);
       this.removeRemotePlayer(playerId);
     });
 
-    // Player position update
-    socket.on(SOCKET_EVENTS.PLAYER_POSITION, (data) => {
+    // Player position update - USING LITERAL STRING
+    socket.on('player:position', (data: { playerId: string; movement: PlayerMovement; player?: PlayerData }) => {
+      // FALLBACK: Auto-create remote player if they don't exist yet
+      // This handles the case where players:list event failed to arrive
+      if (data.player && !this.remotePlayers.has(data.playerId)) {
+        console.log(`🔄 Auto-creating remote player from position event: ${data.player.username}`);
+        this.addRemotePlayer({
+          id: data.player.id,
+          username: data.player.username,
+          avatar: data.player.avatar,
+          userId: data.player.userId,
+          position: data.movement.position,
+          velocity: data.movement.velocity,
+          direction: data.movement.direction,
+          isMoving: data.movement.isMoving,
+          timestamp: data.movement.timestamp
+        });
+      }
+
       this.updateRemotePlayer(data.playerId, data.movement);
     });
 
-    // Initial players list
-    socket.on(SOCKET_EVENTS.PLAYERS_LIST, (players: Record<string, PlayerData>) => {
-      console.log(`📋 Received PLAYERS_LIST: ${Object.keys(players).length} players`);
-      console.log(`📋 Socket ID: ${socket.id}`);
-      console.log(`📋 Players:`, Object.keys(players));
+    // Initial players list - CRITICAL: USING LITERAL STRING
+    console.log(`🎯 Registering players:list handler (CRITICAL - literal string)...`);
+    socket.on('players:list', (players: Record<string, PlayerData>) => {
+      console.log(`\n========================================`);
+      console.log(`📋 PLAYERS_LIST EVENT HANDLER CALLED!`);
+      console.log(`========================================`);
+      console.log(`Total players: ${Object.keys(players).length}`);
+      console.log(`My socket ID: ${socket.id}`);
+      console.log(`Player IDs:`, Object.keys(players));
+      console.log(`Scene ready: ${this.isSceneReady}`);
+      console.log(`Local player exists: ${!!this.localPlayer}`);
+      console.log(`Pending remote players count: ${this.pendingRemotePlayers.length}`);
+      console.log(`========================================\n`);
 
       // FALLBACK: Create local player if it doesn't exist yet and we're in the list
       // This handles the case where AUTHENTICATED event might not be received
@@ -1066,17 +1097,24 @@ export class MainScene extends Phaser.Scene {
       }
 
       // Add remote players
+      console.log(`\n🔄 Processing remote players from PLAYERS_LIST...`);
       Object.entries(players).forEach(([id, player]) => {
         if (id !== socket.id) {
-          console.log(`👥 Adding remote player: ${player.username} (${id})`);
+          console.log(`   → Remote player found: ${player.username} (${id})`);
           this.addRemotePlayer(player);
+        } else {
+          console.log(`   ⏭️  Skipping self: ${player.username} (${id})`);
         }
       });
+      console.log(`🔄 Finished processing remote players\n`);
     });
 
-    // Authenticated - create local player
-    socket.on(SOCKET_EVENTS.AUTHENTICATED, () => {
-      console.log('🔐 AUTHENTICATED event received!');
+    // Authenticated - create local player - CRITICAL: USING LITERAL STRING
+    console.log('🎯 Registering authenticated handler (CRITICAL - literal string)...');
+    socket.on('authenticated', () => {
+      console.log('\n========================================');
+      console.log('🔐 AUTHENTICATED EVENT RECEIVED!');
+      console.log('========================================\n');
       const store = useGameStore.getState();
       console.log('📦 User from store:', store.user);
 
@@ -1099,8 +1137,8 @@ export class MainScene extends Phaser.Scene {
       }
     });
 
-    // Proximity updates - for video/audio chat
-    socket.on(SOCKET_EVENTS.PROXIMITY_UPDATE, (proximityData) => {
+    // Proximity updates - for video/audio chat - USING LITERAL STRING
+    socket.on('proximity:update', (proximityData) => {
       const store = useGameStore.getState();
 
       // Extract player IDs from proximity data
@@ -1109,14 +1147,16 @@ export class MainScene extends Phaser.Scene {
       // Update store with nearby players
       store.setProximityPlayers(playerIds);
 
-      // Log proximity changes for debugging
-      if (playerIds.length > 0) {
+      // Log proximity changes for debugging (THROTTLED to prevent console spam)
+      const now = Date.now();
+      if (playerIds.length > 0 && (now - this.lastProximityLogTime) > this.proximityLogThrottle) {
         console.log(`📡 Players in proximity (${playerIds.length}):`, playerIds);
+        this.lastProximityLogTime = now;
       }
     });
 
-    // Door state updates
-    socket.on(SOCKET_EVENTS.DOOR_UPDATE, (update: any) => {
+    // Door state updates - USING LITERAL STRING
+    socket.on('door:update', (update: any) => {
       const door = this.doors.find(d => d.getDoorId() === update.doorId);
       if (door && update.state) {
         door.updateState(update.state);
@@ -1124,8 +1164,8 @@ export class MainScene extends Phaser.Scene {
       }
     });
 
-    // Initial doors list
-    socket.on(SOCKET_EVENTS.DOORS_LIST, (doorsData: DoorData[]) => {
+    // Initial doors list - USING LITERAL STRING
+    socket.on('doors:list', (doorsData: DoorData[]) => {
       doorsData.forEach((doorData) => {
         const door = this.doors.find(d => d.getDoorId() === doorData.id);
         if (door) {

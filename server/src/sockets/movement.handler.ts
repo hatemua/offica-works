@@ -8,9 +8,18 @@ export function setupMovementHandlers(io: Server, socket: Socket) {
 
     if (player) {
       // Broadcast to all other players
+      // IMPORTANT: Include full player data so clients can auto-create missing remote players
+      // This is a fallback for when players:list event fails to arrive
       socket.broadcast.emit(SOCKET_EVENTS.PLAYER_POSITION, {
         playerId: socket.id,
-        movement
+        movement,
+        // Include full player data for auto-creation fallback
+        player: {
+          id: player.id,
+          username: player.username,
+          avatar: player.avatar,
+          userId: player.userId
+        }
       });
 
       // Check proximity changes and always emit updates

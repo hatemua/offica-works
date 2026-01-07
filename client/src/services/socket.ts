@@ -6,6 +6,8 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
 
 class SocketService {
   private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
+  private lastEventLogTime: Map<string, number> = new Map();
+  private eventLogThrottle: number = 2000; // Log each event type every 2 seconds max
 
   connect() {
     const token = apiService.getToken();
@@ -18,9 +20,23 @@ class SocketService {
       transports: ['websocket'],
     });
 
-    // Log ALL incoming events for debugging
+    // Log ALL incoming events for debugging (THROTTLED to prevent console spam)
     this.socket.onAny((eventName, ...args) => {
-      console.log(`📨 Socket event received: "${eventName}"`, args);
+      // Always log critical events
+      const criticalEvents = ['authenticated', 'players:list', 'player:joined', 'player:left', 'connect', 'disconnect', 'connect_error'];
+
+      if (criticalEvents.includes(eventName)) {
+        console.log(`📨 Socket event received: "${eventName}"`, args);
+      } else {
+        // Throttle non-critical events
+        const now = Date.now();
+        const lastLog = this.lastEventLogTime.get(eventName) || 0;
+
+        if ((now - lastLog) > this.eventLogThrottle) {
+          console.log(`📨 Socket event received: "${eventName}"`, args);
+          this.lastEventLogTime.set(eventName, now);
+        }
+      }
     });
 
     this.socket.on('connect', () => {
