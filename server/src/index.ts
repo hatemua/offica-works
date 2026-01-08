@@ -18,6 +18,7 @@ const httpServer = createServer(app);
 const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  'https://livekit.darblockchain.io',
   process.env.CLIENT_URL
 ].filter((origin): origin is string => typeof origin === 'string');
 
