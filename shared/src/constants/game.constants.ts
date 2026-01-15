@@ -14,11 +14,11 @@ export const GAME_CONFIG = {
   INTERPOLATION_DELAY: 100, // ms
 
   // Proximity settings
-  PROXIMITY_THRESHOLD: 150, // pixels (for corridors)
-  PROXIMITY_DISCONNECT_THRESHOLD: 200, // pixels - disconnect when further
-  PROXIMITY_MAX_DISTANCE: 300, // max audio distance
-  PROXIMITY_AUDIO_FADE_START: 100, // start fading audio
-  PROXIMITY_AUDIO_FADE_END: 200, // audio fully faded
+  PROXIMITY_THRESHOLD: 800, // pixels - full screen coverage for calls
+  PROXIMITY_DISCONNECT_THRESHOLD: 900, // pixels - disconnect when further
+  PROXIMITY_MAX_DISTANCE: 1000, // max audio distance
+  PROXIMITY_AUDIO_FADE_START: 300, // start fading audio
+  PROXIMITY_AUDIO_FADE_END: 600, // audio fully faded
 
   // Room settings
   MAX_ROOM_CAPACITY: 50,

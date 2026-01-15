@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Player, User } from '@mini-gather/shared';
+import { Player, User, InteractionZone } from '@mini-gather/shared';
 
 interface GameStore {
   // Auth
@@ -11,6 +11,8 @@ interface GameStore {
   players: Record<string, Player>;
   currentPlayerId: string | null;
   currentRoomId: string | null;
+  currentZoneId: string | null;
+  currentZone: InteractionZone | null;
 
   // Actions
   setPlayers: (players: Record<string, Player>) => void;
@@ -19,6 +21,7 @@ interface GameStore {
   updatePlayer: (playerId: string, player: Partial<Player>) => void;
   setCurrentPlayerId: (playerId: string) => void;
   setCurrentRoomId: (roomId: string | null) => void;
+  setCurrentZone: (zoneId: string | null, zone: InteractionZone | null) => void;
 
   // UI state
   isChatOpen: boolean;
@@ -41,6 +44,8 @@ export const useGameStore = create<GameStore>((set) => ({
   players: {},
   currentPlayerId: null,
   currentRoomId: null,
+  currentZoneId: null,
+  currentZone: null,
 
   // Actions
   setPlayers: (players) => set({ players }),
@@ -60,6 +65,7 @@ export const useGameStore = create<GameStore>((set) => ({
   })),
   setCurrentPlayerId: (playerId) => set({ currentPlayerId: playerId }),
   setCurrentRoomId: (roomId) => set({ currentRoomId: roomId }),
+  setCurrentZone: (zoneId, zone) => set({ currentZoneId: zoneId, currentZone: zone }),
 
   // UI state
   isChatOpen: false,

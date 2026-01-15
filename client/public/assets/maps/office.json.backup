@@ -429,73 +429,46 @@
                  "y":96.3333333333333
                 }, 
                 {
-                 "id":20,
-                 "name":"TopLeftTableZone",
+                 "height":64,
+                 "id":18,
+                 "name":"to-conference",
                  "properties":[
                         {
+                         "name":"exitUrl",
+                         "type":"string",
+                         "value":"conference.tmj#from-office"
+                        },{
                          "name":"jitsiRoom",
                          "type":"string",
-                         "value":"TopLeftTable"
+                         "value":"MeetingRoom"
                         }],
                  "rotation":0,
                  "type":"area",
                  "visible":true,
-                 "width":140,
-                 "height":135,
-                 "x":300,
-                 "y":120
-                },
+                 "width":32,
+                 "x":0,
+                 "y":512
+                }, 
                 {
-                
-                 "id":21,
-                 "name":"TopRightTableZone",
+                 "height":64,
+                 "id":19,
+                 "name":"from-conference",
                  "properties":[
                         {
+                         "name":"start",
+                         "type":"bool",
+                         "value":true
+                        },{
                          "name":"jitsiRoom",
                          "type":"string",
-                         "value":"TopRightTable"
+                         "value":"MeetingRoom"
                         }],
                  "rotation":0,
                  "type":"area",
                  "visible":true,
-                 "width":140,
-                  "height":135,
-                 "x":500,
-                 "y":120
-                },
-                {
-                 "height":150,
-                 "id":22,
-                 "name":"CentralConferenceZone",
-                 "properties":[
-                        {
-                         "name":"jitsiRoom",
-                         "type":"string",
-                         "value":"CentralConference"
-                        }],
-                 "rotation":0,
-                 "type":"area",
-                 "visible":true,
-                 "width":200,
-                 "x":380,
-                 "y":290
-                },
-                {
-                 "id":23,
-                 "name":"EntryRoomZone",
-                 "properties":[
-                        {
-                         "name":"jitsiRoom",
-                         "type":"string",
-                         "value":"EntryRoom"
-                        }],
-                 "rotation":0,
-                 "type":"area",
-                 "visible":true,
-                 "width":30,
-                 "height":96,
-                 "x":160,
-                 "y":480
+                 "width":32,
+                 "x":64,
+                 "y":544
                 }],
          "opacity":1,
          "type":"objectgroup",

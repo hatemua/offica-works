@@ -40,6 +40,10 @@ export class LiveKitService {
   async createRoomToken(roomId: string, userId: string, username: string): Promise<string> {
     return this.createToken(`room-${roomId}`, username, userId);
   }
+
+  async createZoneToken(zoneId: string, userId: string, username: string): Promise<string> {
+    return this.createToken(`zone-${zoneId}`, username, userId);
+  }
 }
 
 export const liveKitService = new LiveKitService();

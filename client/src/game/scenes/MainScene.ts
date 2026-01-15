@@ -1001,10 +1001,101 @@ export class MainScene extends Phaser.Scene {
       this.cameras.main.centerOn(this.tilemap.widthInPixels / 2, this.tilemap.heightInPixels / 2);
       console.log(`📷 Camera setup: zoom=0.9, bounds=${this.tilemap.widthInPixels}x${this.tilemap.heightInPixels}px`);
 
+      // Load and visualize zones from the tilemap
+      this.loadZonesFromTilemap();
+
     } catch (error) {
       console.error('❌ Error loading tilemap:', error);
       this.fallbackToProcedural();
     }
+  }
+
+  /**
+   * Load and optionally visualize zones from Tiled object layers
+   * These zones match the server-side zones for audio isolation
+   */
+  private loadZonesFromTilemap() {
+    if (!this.tilemap) return;
+
+    // Get object layers from the tilemap
+    const objectLayers = this.tilemap.objects;
+    if (!objectLayers || objectLayers.length === 0) {
+      console.log('ℹ️  No object layers found in tilemap (zones will still work server-side)');
+      return;
+    }
+
+    console.log(`\n📍 Loading zones from ${objectLayers.length} object layer(s)...`);
+
+    let zoneCount = 0;
+
+    objectLayers.forEach((layer) => {
+      layer.objects.forEach((obj: any) => {
+        // Check if this object is a zone (has jitsi, silent properties, or "zone" in name)
+        const hasJitsiRoom = obj.properties?.some((p: any) => p.name === 'jitsiRoom');
+        const hasSilent = obj.properties?.some((p: any) => p.name === 'silent');
+        const isZone = hasJitsiRoom || hasSilent || obj.name.toLowerCase().includes('zone');
+
+        if (isZone) {
+          zoneCount++;
+          console.log(`   ✓ Found zone: "${obj.name}" at (${Math.round(obj.x)}, ${Math.round(obj.y)}) size ${Math.round(obj.width)}x${Math.round(obj.height)}`);
+
+          // Optional: Draw visual indicator for zones (useful for debugging)
+          // Comment out if you don't want to see zone boundaries
+          this.drawZoneIndicator(obj);
+        }
+      });
+    });
+
+    console.log(`✅ Loaded ${zoneCount} zones from tilemap\n`);
+  }
+
+  /**
+   * Draw a visual indicator for a zone (optional, for debugging)
+   * Shows semi-transparent colored rectangles over zone areas
+   */
+  private drawZoneIndicator(zoneObj: any) {
+    const graphics = this.add.graphics();
+
+    // Determine color based on zone type/name
+    let color = 0x00ff00; // Default: green
+    let alpha = 0.15;
+
+    const name = zoneObj.name.toLowerCase();
+    if (name.includes('meeting') || name.includes('jitsi')) {
+      color = 0x0088ff; // Blue for meeting rooms
+    } else if (name.includes('silent')) {
+      color = 0x888888; // Gray for silent zones
+      alpha = 0.2;
+    } else if (name.includes('chill') || name.includes('lounge')) {
+      color = 0xff8800; // Orange for chill/lounge areas
+    }
+
+    // Draw border
+    graphics.lineStyle(2, color, 0.6);
+    graphics.strokeRect(zoneObj.x, zoneObj.y, zoneObj.width, zoneObj.height);
+
+    // Draw fill
+    graphics.fillStyle(color, alpha);
+    graphics.fillRect(zoneObj.x, zoneObj.y, zoneObj.width, zoneObj.height);
+
+    // Set depth to render above floor but below players
+    graphics.setDepth(950);
+
+    // Optional: Add zone name label
+    const labelText = this.add.text(
+      zoneObj.x + zoneObj.width / 2,
+      zoneObj.y + zoneObj.height / 2,
+      zoneObj.name,
+      {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: '#000000',
+        padding: { x: 8, y: 4 },
+      }
+    );
+    labelText.setOrigin(0.5, 0.5);
+    labelText.setAlpha(0.7);
+    labelText.setDepth(951);
   }
 
   /**
@@ -1096,17 +1187,22 @@ export class MainScene extends Phaser.Scene {
         }
       }
 
-      // Add remote players
-      console.log(`\n🔄 Processing remote players from PLAYERS_LIST...`);
+      // Add ALL players to store (including self)
+      console.log(`\n🔄 Processing players from PLAYERS_LIST...`);
       Object.entries(players).forEach(([id, player]) => {
         if (id !== socket.id) {
           console.log(`   → Remote player found: ${player.username} (${id})`);
           this.addRemotePlayer(player);
         } else {
-          console.log(`   ⏭️  Skipping self: ${player.username} (${id})`);
+          console.log(`   → Local player (self): ${player.username} (${id})`);
+          // Add self to store if local player exists
+          if (this.localPlayer) {
+            useGameStore.getState().addPlayer(player);
+            console.log(`   ✅ Local player added to store from PLAYERS_LIST`);
+          }
         }
       });
-      console.log(`🔄 Finished processing remote players\n`);
+      console.log(`🔄 Finished processing players\n`);
     });
 
     // Authenticated - create local player - CRITICAL: USING LITERAL STRING
@@ -1289,6 +1385,21 @@ export class MainScene extends Phaser.Scene {
     this.cameraFollowEnabled = true;
     this.cameras.main.startFollow(this.localPlayer, true, 0.1, 0.1);
     this.cameras.main.setZoom(1); // Zoom in when player appears
+
+    // CRITICAL: Add local player to game store so it appears in the players list
+    const localPlayerData: PlayerData = {
+      id: playerId,
+      userId: playerId, // Use socket ID as userId for now
+      username: username,
+      avatar: avatar,
+      position: { x: spawnX, y: spawnY },
+      velocity: { x: 0, y: 0 },
+      direction: Direction.DOWN,
+      isMoving: false,
+      timestamp: Date.now()
+    };
+    useGameStore.getState().addPlayer(localPlayerData);
+    console.log(`✅ LOCAL PLAYER ADDED TO STORE`);
 
     console.log(`✅ LOCAL PLAYER CREATED AND READY!`);
     console.log(`   Position: (${spawnX}, ${spawnY})`);

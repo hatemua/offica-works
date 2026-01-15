@@ -1,4 +1,4 @@
-import { Player, PlayerMovement, ProximityData } from './game.types';
+import { Player, PlayerMovement, ProximityData, InteractionZone } from './game.types';
 import { Door, DoorInteraction, DoorUpdate } from './door.types';
 import { UserProfile } from './user.types';
 
@@ -23,6 +23,11 @@ export interface ServerToClientEvents {
   'proximity:enter': (data: ProximityData) => void;
   'proximity:leave': (data: ProximityData) => void;
   'proximity:update': (data: ProximityData[]) => void;
+
+  // Zones
+  'zone:enter': (data: { zoneId: string; zone: InteractionZone }) => void;
+  'zone:leave': (data: { zoneId: string }) => void;
+  'zones:list': (zones: Record<string, InteractionZone>) => void;
 
   // Chat
   'chat:message': (message: ChatMessage) => void;

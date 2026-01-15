@@ -29,6 +29,11 @@ export const SOCKET_EVENTS = {
   PROXIMITY_LEAVE: 'proximity:leave',
   PROXIMITY_UPDATE: 'proximity:update',
 
+  // Zones
+  ZONE_ENTER: 'zone:enter',
+  ZONE_LEAVE: 'zone:leave',
+  ZONES_LIST: 'zones:list',
+
   // Chat
   CHAT_MESSAGE: 'chat:message',
   CHAT_HISTORY: 'chat:history',

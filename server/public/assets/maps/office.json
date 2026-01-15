@@ -429,6 +429,49 @@
                  "y":96.3333333333333
                 }, 
                 {
+                 "height":64,
+                 "id":18,
+                 "name":"to-conference",
+                 "properties":[
+                        {
+                         "name":"exitUrl",
+                         "type":"string",
+                         "value":"conference.tmj#from-office"
+                        },{
+                         "name":"jitsiRoom",
+                         "type":"string",
+                         "value":"MeetingRoom"
+                        }],
+                 "rotation":0,
+                 "type":"area",
+                 "visible":true,
+                 "width":32,
+                 "x":0,
+                 "y":512
+                }, 
+                {
+                 "height":64,
+                 "id":19,
+                 "name":"from-conference",
+                 "properties":[
+                        {
+                         "name":"start",
+                         "type":"bool",
+                         "value":true
+                        },{
+                         "name":"jitsiRoom",
+                         "type":"string",
+                         "value":"MeetingRoom"
+                        }],
+                 "rotation":0,
+                 "type":"area",
+                 "visible":true,
+                 "width":32,
+                 "x":64,
+                 "y":544
+                },
+                {
+                 "height":128,
                  "id":20,
                  "name":"TopLeftTableZone",
                  "properties":[
@@ -440,13 +483,12 @@
                  "rotation":0,
                  "type":"area",
                  "visible":true,
-                 "width":140,
-                 "height":135,
-                 "x":300,
-                 "y":120
+                 "width":160,
+                 "x":380,
+                 "y":128
                 },
                 {
-                
+                 "height":128,
                  "id":21,
                  "name":"TopRightTableZone",
                  "properties":[
@@ -458,10 +500,9 @@
                  "rotation":0,
                  "type":"area",
                  "visible":true,
-                 "width":140,
-                  "height":135,
-                 "x":500,
-                 "y":120
+                 "width":160,
+                 "x":580,
+                 "y":128
                 },
                 {
                  "height":150,
@@ -477,10 +518,11 @@
                  "type":"area",
                  "visible":true,
                  "width":200,
-                 "x":380,
+                 "x":480,
                  "y":290
                 },
                 {
+                 "height":96,
                  "id":23,
                  "name":"EntryRoomZone",
                  "properties":[
@@ -492,9 +534,8 @@
                  "rotation":0,
                  "type":"area",
                  "visible":true,
-                 "width":30,
-                 "height":96,
-                 "x":160,
+                 "width":128,
+                 "x":32,
                  "y":480
                 }],
          "opacity":1,

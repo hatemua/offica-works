@@ -78,6 +78,13 @@ class ApiService {
       body: JSON.stringify({ roomId }),
     });
   }
+
+  async getLiveKitZoneToken(zoneId: string): Promise<{ token: string }> {
+    return this.request('/api/livekit/token/zone', {
+      method: 'POST',
+      body: JSON.stringify({ zoneId }),
+    });
+  }
 }
 
 export const apiService = new ApiService();

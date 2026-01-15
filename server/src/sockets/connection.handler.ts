@@ -87,12 +87,35 @@ export function setupSocketHandlers(io: Server) {
         console.error(`❌ [CONNECTION HANDLER] Failed to emit PLAYERS_LIST:`, emitError);
       }
 
+      // Send initial proximity update to new player
+      console.log(`\n🎯 [CONNECTION HANDLER] Calculating initial proximity for ${socket.data.username}`);
+      const initialProximity = gameService.getPlayersInProximity(socket.id);
+      console.log(`   Found ${initialProximity.length} players in proximity`);
+      socket.emit(SOCKET_EVENTS.PROXIMITY_UPDATE, initialProximity);
+      console.log(`✅ [CONNECTION HANDLER] Initial proximity update sent\n`);
+
       // Notify all other players
       console.log(`\n📢 [CONNECTION HANDLER] Broadcasting PLAYER_JOINED to other players`);
       console.log(`   Event name: "${SOCKET_EVENTS.PLAYER_JOINED}"`);
       console.log(`   Player data:`, player);
       socket.broadcast.emit(SOCKET_EVENTS.PLAYER_JOINED, player);
       console.log(`✅ [CONNECTION HANDLER] PLAYER_JOINED broadcast complete\n`);
+
+      // Trigger proximity updates for all existing players (new player might be near them)
+      console.log(`\n🔄 [CONNECTION HANDLER] Updating proximity for all existing players`);
+      const allPlayerIds = Object.keys(allPlayers);
+      let proximityUpdateCount = 0;
+      allPlayerIds.forEach(playerId => {
+        if (playerId !== socket.id) {
+          const otherSocket = io.sockets.sockets.get(playerId);
+          if (otherSocket) {
+            const proximity = gameService.getPlayersInProximity(playerId);
+            otherSocket.emit(SOCKET_EVENTS.PROXIMITY_UPDATE, proximity);
+            proximityUpdateCount++;
+          }
+        }
+      });
+      console.log(`✅ [CONNECTION HANDLER] Sent proximity updates to ${proximityUpdateCount} existing players\n`);
 
       // Setup handlers
       console.log(`⚙️ [CONNECTION HANDLER] Setting up event handlers...`);

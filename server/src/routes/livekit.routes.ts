@@ -38,4 +38,23 @@ router.post('/token/room', authMiddleware, async (req: AuthRequest, res) => {
   }
 });
 
+router.post('/token/zone', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const { zoneId } = req.body;
+    if (!zoneId) {
+      return res.status(400).json({ error: 'Zone ID required' });
+    }
+
+    const user = await authService.getUserById(req.userId!);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const token = await liveKitService.createZoneToken(zoneId, user.id, user.username);
+    res.json({ token });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
