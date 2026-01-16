@@ -24,27 +24,93 @@ function MediaControls() {
   const [isMicEnabled, setIsMicEnabled] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
 
+  // Auto-enable microphone when participant connects
+  useEffect(() => {
+    const enableMicrophone = async () => {
+      if (localParticipant && !isMicEnabled) {
+        try {
+          console.log('🎤 Auto-enabling microphone...');
+          await localParticipant.setMicrophoneEnabled(true);
+          setIsMicEnabled(true);
+          console.log('✅ Microphone enabled');
+        } catch (error) {
+          console.error('❌ Failed to enable microphone:', error);
+          // Permission denied or device error - user will need to enable manually
+        }
+      }
+    };
+
+    enableMicrophone();
+  }, [localParticipant]);
+
+  // Sync UI state with actual track state
+  useEffect(() => {
+    if (!localParticipant) return;
+
+    const updateTrackStates = () => {
+      // Check if camera track is published and not muted
+      const cameraTrack = localParticipant.getTrackPublication(Track.Source.Camera);
+      setIsCameraEnabled(cameraTrack?.track ? !cameraTrack.track.isMuted : false);
+
+      // Check if microphone track is published and not muted
+      const micTrack = localParticipant.getTrackPublication(Track.Source.Microphone);
+      setIsMicEnabled(micTrack?.track ? !micTrack.track.isMuted : false);
+
+      // Check if screen share is active
+      const screenTrack = localParticipant.getTrackPublication(Track.Source.ScreenShare);
+      setIsScreenSharing(screenTrack?.track ? !screenTrack.track.isMuted : false);
+    };
+
+    // Update immediately
+    updateTrackStates();
+
+    // Listen for track publications/unpublications
+    localParticipant.on('trackPublished', updateTrackStates);
+    localParticipant.on('trackUnpublished', updateTrackStates);
+    localParticipant.on('trackMuted', updateTrackStates);
+    localParticipant.on('trackUnmuted', updateTrackStates);
+
+    return () => {
+      localParticipant.off('trackPublished', updateTrackStates);
+      localParticipant.off('trackUnpublished', updateTrackStates);
+      localParticipant.off('trackMuted', updateTrackStates);
+      localParticipant.off('trackUnmuted', updateTrackStates);
+    };
+  }, [localParticipant]);
+
   const toggleCamera = async () => {
     if (localParticipant) {
-      const enabled = !isCameraEnabled;
-      await localParticipant.setCameraEnabled(enabled);
-      setIsCameraEnabled(enabled);
+      try {
+        const enabled = !isCameraEnabled;
+        await localParticipant.setCameraEnabled(enabled);
+        setIsCameraEnabled(enabled);
+      } catch (error) {
+        console.error('❌ Failed to toggle camera:', error);
+      }
     }
   };
 
   const toggleMicrophone = async () => {
     if (localParticipant) {
-      const enabled = !isMicEnabled;
-      await localParticipant.setMicrophoneEnabled(enabled);
-      setIsMicEnabled(enabled);
+      try {
+        const enabled = !isMicEnabled;
+        await localParticipant.setMicrophoneEnabled(enabled);
+        setIsMicEnabled(enabled);
+      } catch (error) {
+        console.error('❌ Failed to toggle microphone:', error);
+      }
     }
   };
 
   const toggleScreenShare = async () => {
     if (localParticipant) {
-      const enabled = !isScreenSharing;
-      await localParticipant.setScreenShareEnabled(enabled);
-      setIsScreenSharing(enabled);
+      try {
+        const enabled = !isScreenSharing;
+        await localParticipant.setScreenShareEnabled(enabled);
+        setIsScreenSharing(enabled);
+      } catch (error) {
+        console.error('❌ Failed to toggle screen share:', error);
+      }
     }
   };
 
@@ -263,6 +329,7 @@ export function VideoPanel() {
       if (currentZoneId && currentZone?.isolateAudio) {
         // Zone-based audio (isolated zones like tables, bureaux)
         console.log('🔊 Connecting to zone audio:', currentZoneId);
+        console.log('   Zone config:', currentZone);
         result = await apiService.getLiveKitZoneToken(currentZoneId);
       } else if (currentRoomId) {
         // Room-based audio
@@ -274,15 +341,26 @@ export function VideoPanel() {
         result = await apiService.getLiveKitProximityToken();
       }
 
+      console.log('✅ LiveKit token received:', result.token ? 'Token exists' : 'NO TOKEN');
       setToken(result.token);
     } catch (error) {
-      console.error('Failed to get LiveKit token:', error);
+      console.error('❌ Failed to get LiveKit token:', error);
     } finally {
       setIsConnecting(false);
     }
   };
 
   const wsUrl = import.meta.env.VITE_LIVEKIT_WS_URL;
+
+  // Debug logging
+  console.log('📊 VideoPanel state:', {
+    token: token ? 'EXISTS' : 'MISSING',
+    wsUrl: wsUrl || 'MISSING',
+    currentZoneId,
+    isolateAudio: currentZone?.isolateAudio,
+    currentRoomId,
+    proximityPlayers: proximityPlayers.length
+  });
 
   // Determine display message
   const getStatusMessage = () => {
@@ -319,6 +397,15 @@ export function VideoPanel() {
         token={token}
         serverUrl={wsUrl}
         data-lk-theme="default"
+        onConnected={() => {
+          console.log('✅ LiveKitRoom CONNECTED');
+        }}
+        onDisconnected={(reason) => {
+          console.log('❌ LiveKitRoom DISCONNECTED:', reason);
+        }}
+        onError={(error) => {
+          console.error('❌ LiveKitRoom ERROR:', error);
+        }}
       >
         <CustomVideoLayout />
         <RoomAudioRenderer />
